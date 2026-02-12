@@ -1,0 +1,672 @@
+index.tsx
+
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // 💾 IMPORT STORAGE
+import { useFonts } from 'expo-font';
+import { useFocusEffect, useRouter } from 'expo-router'; // 🔄 Added useFocusEffect
+import React, { useCallback, useState } from 'react';
+import { FlatList, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+const SURAH_LIST = [
+  { id: 1, nameAr: 'الفاتحة', nameEn: 'Al-Fatiha', meaning: 'The Opening', verses: 7 },
+  { id: 2, nameAr: 'البقرة', nameEn: 'Al-Baqarah', meaning: 'The Cow', verses: 286 },
+  { id: 3, nameAr: 'آل عمران', nameEn: 'Ali Imran', meaning: 'Family of Imran', verses: 200 },
+  { id: 18, nameAr: 'الكهف', nameEn: 'Al-Kahf', meaning: 'The Cave', verses: 110 },
+  { id: 36, nameAr: 'يس', nameEn: 'Ya-Sin', meaning: 'Ya Sin', verses: 83 },
+  { id: 55, nameAr: 'الرحمن', nameEn: 'Ar-Rahman', meaning: 'The Beneficent', verses: 78 },
+  { id: 67, nameAr: 'الملك', nameEn: 'Al-Mulk', meaning: 'The Sovereignty', verses: 30 },
+  { id: 112, nameAr: 'الإخلاص', nameEn: 'Al-Ikhlas', meaning: 'The Sincerity', verses: 4 },
+  { id: 113, nameAr: 'الفلق', nameEn: 'Al-Falaq', meaning: 'The Daybreak', verses: 5 },
+  { id: 114, nameAr: 'الناس', nameEn: 'An-Nas', meaning: 'Mankind', verses: 6 },
+];
+
+const COLORS = {
+  background: '#FDFBF7', text: '#2D2D2D', primary: '#BFA868',
+  cardBg: '#FFFFFF', border: '#F2E8D5', subText: '#888888',
+  lastReadBg: '#2D2D2D', lastReadText: '#BFA868'
+};
+
+export default function HomeScreen() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [lastRead, setLastRead] = useState(null); // 🔄 State for loaded data
+
+  const [fontsLoaded] = useFonts({
+    'AlMushaf': require('../../assets/fonts/AlMushaf.ttf'),
+    'AlmendraSC': require('../../assets/fonts/AlmendraSC.ttf'),
+  });
+
+  // 🔄 LOAD PROGRESS EVERY TIME SCREEN IS FOCUSED
+  useFocusEffect(
+    useCallback(() => {
+      const loadProgress = async () => {
+        try {
+          const saved = await AsyncStorage.getItem('last_read');
+          if (saved) {
+            setLastRead(JSON.parse(saved));
+          }
+        } catch (e) { console.log('Failed to load', e); }
+      };
+      loadProgress();
+    }, [])
+  );
+
+  if (!fontsLoaded) return <View style={styles.container} />;
+
+  const filteredSurahs = SURAH_LIST.filter(item => {
+    const q = searchQuery.toLowerCase();
+    return (
+      item.nameEn.toLowerCase().includes(q) ||
+      item.id.toString().includes(q) ||
+      item.nameAr.includes(q)
+    );
+  });
+
+  const renderItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.6}
+      onPress={() => {
+        if (item.id === 1 || item.id === 2) {
+          router.push({ pathname: '/player', params: { surahId: item.id } });
+        } else {
+          alert('Audio coming soon!');
+        }
+      }}
+    >
+      <View style={styles.numberContainer}>
+        <View style={styles.numberCircle}>
+          <Text style={styles.numberText}>{item.id}</Text>
+        </View>
+      </View>
+      <View style={styles.infoBox}>
+        <Text style={styles.nameEn}>{item.nameEn}</Text>
+        <Text style={styles.meaning}>{item.meaning} • {item.verses} Verses</Text>
+      </View>
+      <View style={styles.arabicBox}>
+        <Text style={styles.nameAr}>{item.nameAr}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+
+      <View style={styles.header}>
+        <View style={styles.headerDecoration} />
+        <Text style={styles.headerTitle}>THE NOBLE QURAN</Text>
+        <Text style={styles.headerSubtitle}>Select a Surah to Recite</Text>
+        <View style={styles.headerDecoration} />
+      </View>
+
+      {/* SEARCH BAR */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color={COLORS.primary} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by Name or Number..."
+          placeholderTextColor="#999"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')}>
+            <Ionicons name="close-circle" size={20} color="#CCC" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* ✨ REAL LAST PLAYED BOX */}
+      {lastRead && (
+        <TouchableOpacity
+          style={styles.lastReadCard}
+          activeOpacity={0.8}
+          onPress={() => {
+            router.push({
+              pathname: '/player',
+              params: {
+                surahId: lastRead.surahId,
+                initialAyah: lastRead.verseId
+              }
+            });
+          }}
+        >
+          <View>
+            <Text style={styles.lastReadLabel}>CONTINUE READING</Text>
+            <Text style={styles.lastReadTitle}>{lastRead.nameEn}</Text>
+            <Text style={styles.lastReadAyah}>Ayah {lastRead.ayahDisplay}</Text>
+          </View>
+          <Ionicons name="play-circle" size={40} color={COLORS.primary} />
+        </TouchableOpacity>
+      )}
+
+      {/* LIST */}
+      <FlatList
+        data={filteredSurahs}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: { paddingVertical: 20, alignItems: 'center', backgroundColor: COLORS.background },
+  headerTitle: { fontFamily: 'AlmendraSC', fontSize: 26, color: COLORS.primary, letterSpacing: 1 },
+
+  lastReadCard: {
+    backgroundColor: COLORS.lastReadBg,
+    marginHorizontal: 20,
+    marginBottom: 15,
+    borderRadius: 12,
+    padding: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 5,
+  },
+  lastReadLabel: { color: '#888', fontSize: 10, letterSpacing: 1, marginBottom: 5 },
+  lastReadTitle: { color: COLORS.primary, fontFamily: 'AlmendraSC', fontSize: 20 },
+  lastReadAyah: { color: '#FFF', fontSize: 12, marginTop: 2 },
+
+  searchContainer: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF',
+    marginHorizontal: 20, marginBottom: 15, paddingHorizontal: 15, height: 50,
+    borderRadius: 25, borderWidth: 1, borderColor: COLORS.primary,
+    shadowColor: "#BFA868", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5, elevation: 2,
+  },
+  searchIcon: { marginRight: 10 },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'Roboto',
+    height: '100%',
+    ...Platform.select({ web: { outlineStyle: 'none' } })
+  },
+
+  headerSubtitle: {
+    fontSize: 12,
+    color: COLORS.subText,
+    marginTop: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+  },
+
+  listContent: { padding: 20, paddingTop: 0 },
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.cardBg, paddingVertical: 18, paddingHorizontal: 16, borderRadius: 8, marginBottom: 12, shadowColor: "#BFA868", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, elevation: 3, borderWidth: 1, borderColor: 'rgba(191, 168, 104, 0.2)' },
+  numberContainer: { justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  numberCircle: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: COLORS.primary },
+  numberText: { fontFamily: 'AlmendraSC', fontSize: 18, color: COLORS.primary },
+  infoBox: { flex: 1, justifyContent: 'center' },
+  nameEn: { fontFamily: 'AlmendraSC', fontSize: 18, color: COLORS.text, marginBottom: 2 },
+  meaning: { fontSize: 12, color: COLORS.subText, fontWeight: '500' },
+  arabicBox: { justifyContent: 'center', alignItems: 'flex-end' },
+  nameAr: { fontFamily: 'AlMushaf', fontSize: 26, color: COLORS.text, marginTop: 4 },
+});
+
+player.tsx
+
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
+import { useFonts } from 'expo-font';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { PanResponder, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { getSurahData } from '../data/registry';
+
+// 🎨 THEMES
+const LIGHT_THEME = {
+  background: '#FDFBF7', text: '#2D2D2D', primary: '#BFA868',    
+  highlight: '#FFF9E6', timelineBase: '#E0E0E0', timelineFill: '#BFA868',
+  secondaryText: '#888888', brackets: '#BFA868', controlBg: '#FFF'
+};
+
+const DARK_THEME = {
+  background: '#121212', text: '#E0E0E0', primary: '#D4AF37',    
+  highlight: '#2A2A2A', timelineBase: '#333333', timelineFill: '#D4AF37',
+  secondaryText: '#888888', brackets: '#D4AF37', controlBg: '#1E1E1E'
+};
+
+const AyahTimeline = ({ ayah, currentPosition, onSeek, colors }) => {
+  const duration = ayah.end - ayah.start;
+  if (duration <= 0) return null; 
+  let localProgress = 0;
+  if (currentPosition >= ayah.end) localProgress = 1; 
+  else if (currentPosition <= ayah.start) localProgress = 0; 
+  else localProgress = (currentPosition - ayah.start) / duration;
+  
+  const viewRef = useRef(null); 
+  const timelineLayout = useRef({ x: 0, width: 0 });
+  const handleTouch = (touchX) => {
+    const { width, x } = timelineLayout.current;
+    if (width === 0) return;
+    let percent = (touchX - x) / width;
+    percent = 1 - percent; 
+    if (percent < 0) percent = 0;
+    if (percent > 1) percent = 1;
+    onSeek(ayah.start + (percent * duration));
+  };
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: (evt) => handleTouch(evt.nativeEvent.pageX),
+      onPanResponderMove: (evt) => handleTouch(evt.nativeEvent.pageX),
+    })
+  ).current;
+  return (
+    <View style={styles.timelineWrapper}>
+      <View ref={viewRef} style={styles.trackArea}
+        onLayout={() => { if (viewRef.current) { viewRef.current.measure((x, y, width, height, pageX, pageY) => { timelineLayout.current = { x: pageX, width: width }; }); } }}
+        {...panResponder.panHandlers}
+      >
+        <View style={[styles.trackBackground, {backgroundColor: colors.timelineBase}]} />
+        <View style={[styles.trackFill, { width: `${localProgress * 100}%`, backgroundColor: colors.timelineFill }]} />
+        {localProgress > 0 && localProgress < 1 && (<View style={[styles.thumb, { right: `${localProgress * 100}%`, backgroundColor: colors.timelineFill }]} />)}
+      </View>
+    </View>
+  );
+};
+
+export default function PlayerScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams(); 
+  const surahId = parseInt(params.surahId) || 1; 
+  const initialAyah = params.initialAyah ? parseInt(Array.isArray(params.initialAyah) ? params.initialAyah[0] : params.initialAyah) : null;
+
+  const surahData = getSurahData(surahId);
+
+  const [fontsLoaded] = useFonts({
+    'AlMushaf': require('../assets/fonts/AlMushaf.ttf'),
+    'AlmendraSC': require('../assets/fonts/AlmendraSC.ttf'),
+  });
+
+  const [fontSize, setFontSize] = useState(28);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const COLORS = isDarkMode ? DARK_THEME : LIGHT_THEME;
+
+  const [position, setPosition] = useState(0); 
+  const [activeAyahId, setActiveAyahId] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  const hasStartedPlaying = useRef(false);
+  const ignoreStatusUpdate = useRef(true); 
+
+  const soundRef = useRef(null);
+  const isDragging = useRef(false);
+  const lastSeekTime = useRef(0);
+  const scrollViewRef = useRef(null);
+  const ayahPositions = useRef({}); 
+  const hasScrolledToInitial = useRef(false); 
+
+  if (!surahData) return null;
+  if (!fontsLoaded) return <View style={{flex:1, backgroundColor: COLORS.background}} />;
+
+  const safeAudio = async (operation) => {
+    if (!soundRef.current) return;
+    try { await operation(); } catch (e) {}
+  };
+
+  const saveProgress = async (id) => {
+    try {
+      const verseNumber = id - 1; 
+      const dataToSave = {
+        surahId: surahId,
+        nameEn: surahData.nameEn || "Surah " + surahId, 
+        ayahDisplay: verseNumber,
+        verseId: id
+      };
+      await AsyncStorage.setItem('last_read', JSON.stringify(dataToSave));
+    } catch (e) {
+      console.log('Failed to save progress', e);
+    }
+  };
+
+  // 🛠️ FORCE STATE UPDATE ON LOAD
+  useEffect(() => {
+    if (initialAyah) {
+      setActiveAyahId(initialAyah);
+      hasScrolledToInitial.current = false;
+    }
+  }, [initialAyah]);
+
+  useEffect(() => {
+    async function initAudio() {
+      try {
+        if (soundRef.current) { await soundRef.current.unloadAsync(); }
+
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false, 
+          playsInSilentModeIOS: true, 
+          staysActiveInBackground: true, 
+          shouldDuckAndroid: true, 
+          playThroughEarpieceAndroid: false,
+        });
+
+        let startPosition = 0;
+        if (initialAyah && surahData) {
+          const targetVerse = surahData.verses.find(v => v.id === initialAyah);
+          if (targetVerse) {
+            startPosition = targetVerse.start;
+            setActiveAyahId(initialAyah);
+            ignoreStatusUpdate.current = true; 
+          }
+        } else {
+            ignoreStatusUpdate.current = false; 
+        }
+
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: surahData.audioUrl },
+          { shouldPlay: false, positionMillis: startPosition, progressUpdateIntervalMillis: 30 } 
+        );
+        
+        soundRef.current = sound;
+        setIsPlaying(false);
+        hasStartedPlaying.current = false;
+
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && !isDragging.current) {
+             
+             if (ignoreStatusUpdate.current && !status.isPlaying && status.positionMillis < 100) {
+                 return; 
+             }
+             if (status.isPlaying || status.positionMillis > 100) {
+                 ignoreStatusUpdate.current = false;
+             }
+
+             if (status.isPlaying !== isPlaying) {
+                setIsPlaying(status.isPlaying);
+                if (status.isPlaying) {
+                    hasStartedPlaying.current = true;
+                }
+             }
+             setPosition(status.positionMillis);
+             highlightAyah(status.positionMillis, status.isPlaying);
+          }
+        });
+      } catch (error) { console.log(error); }
+    }
+    initAudio();
+    return () => { if (soundRef.current) soundRef.current.unloadAsync(); };
+  // 🛠️ ADDED initialAyah TO DEPENDENCIES
+  }, [surahId, initialAyah]); 
+
+  const highlightAyah = (time, currentlyPlaying) => {
+    const ayah = surahData.verses.find(w => time >= w.start && time < w.end);
+    if (ayah && ayah.id !== activeAyahId) { 
+        setActiveAyahId(ayah.id); 
+        if (currentlyPlaying || hasStartedPlaying.current) {
+            saveProgress(ayah.id);
+        }
+    }
+  };
+
+  const scrollToActive = (id) => {
+    if (id && scrollViewRef.current && ayahPositions.current[id] !== undefined) {
+      const y = ayahPositions.current[id];
+      scrollViewRef.current.scrollTo({ y: Math.max(0, y - 150), animated: true });
+    }
+  };
+
+  useEffect(() => {
+    scrollToActive(activeAyahId);
+  }, [activeAyahId]); 
+
+  const handleSeek = (targetTime) => {
+    setPosition(targetTime);
+    ignoreStatusUpdate.current = false; 
+    isDragging.current = true;
+    const now = Date.now();
+    if (now - lastSeekTime.current > 70) {
+      lastSeekTime.current = now;
+      safeAudio(async () => {
+        await soundRef.current.setPositionAsync(targetTime);
+        if (!isPlaying) await soundRef.current.playAsync(); 
+      });
+    }
+    if (window.dragTimeout) clearTimeout(window.dragTimeout);
+    window.dragTimeout = setTimeout(() => { isDragging.current = false; }, 200);
+  };
+
+  const playAyah = async (startTime) => {
+    ignoreStatusUpdate.current = false; 
+    setPosition(startTime);
+    const ayah = surahData.verses.find(w => startTime >= w.start && startTime < w.end);
+    if (ayah) {
+        setActiveAyahId(ayah.id);
+        saveProgress(ayah.id); 
+    }
+
+    safeAudio(async () => {
+      await soundRef.current.setPositionAsync(startTime);
+      await soundRef.current.playAsync();
+      setIsPlaying(true);
+      hasStartedPlaying.current = true;
+    });
+  };
+
+  const togglePlayPause = async () => {
+    ignoreStatusUpdate.current = false;
+    if (!soundRef.current) return;
+    const status = await soundRef.current.getStatusAsync();
+    if (status.isLoaded) {
+        if (status.isPlaying) { await soundRef.current.pauseAsync(); } 
+        else { await soundRef.current.playAsync(); }
+    }
+  };
+
+  const skipAyah = (direction) => {
+    ignoreStatusUpdate.current = false;
+    const currentIndex = surahData.verses.findIndex(v => v.id === activeAyahId);
+    if (currentIndex === -1 && surahData.verses.length > 0) { playAyah(surahData.verses[0].start); return; }
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+    if (newIndex >= 0 && newIndex < surahData.verses.length) {
+        playAyah(surahData.verses[newIndex].start);
+    }
+  };
+
+  const changeSurah = (direction) => {
+    const newId = direction === 'next' ? surahId + 1 : surahId - 1;
+    if (newId > 0 && newId <= 114) { router.replace({ pathname: '/player', params: { surahId: newId } }); }
+  };
+
+  return (
+    <SafeAreaView style={[styles.mainContainer, { backgroundColor: COLORS.background }]}>
+      
+      <Stack.Screen options={{ headerShown: false }} />
+
+      <View style={[styles.header, { borderBottomColor: isDarkMode ? '#333' : '#EEE' }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+           <Text style={{ color: COLORS.primary, fontSize: 16, fontWeight: 'bold' }}>← Back</Text>
+        </TouchableOpacity>
+        
+        <Text style={[styles.surahName, { color: COLORS.primary }]}>{surahData.nameAr}</Text>
+        
+        <TouchableOpacity onPress={() => setShowSettings(!showSettings)} style={styles.aaButton}>
+           <Text style={{ fontSize: 18, fontWeight: 'bold', color: COLORS.primary }}>Aa</Text>
+        </TouchableOpacity>
+      </View>
+
+      {showSettings && (
+        <View style={[styles.settingsPanel, { backgroundColor: COLORS.controlBg, borderColor: COLORS.primary }]}>
+           <View style={styles.settingRow}>
+             <Text style={{color: COLORS.text, marginRight: 10}}>Size</Text>
+             <TouchableOpacity onPress={() => setFontSize(Math.max(20, fontSize - 2))} style={styles.sizeBtn}><Text style={{color: COLORS.text}}>-</Text></TouchableOpacity>
+             <Text style={{color: COLORS.text, width: 30, textAlign: 'center'}}>{fontSize}</Text>
+             <TouchableOpacity onPress={() => setFontSize(Math.min(50, fontSize + 2))} style={styles.sizeBtn}><Text style={{color: COLORS.text}}>+</Text></TouchableOpacity>
+           </View>
+           <View style={styles.settingDivider} />
+           <View style={styles.settingRow}>
+             <Text style={{color: COLORS.text, marginRight: 10}}>Mode</Text>
+             <TouchableOpacity onPress={() => setIsDarkMode(!isDarkMode)} style={[styles.modeBtn, {backgroundColor: isDarkMode ? COLORS.primary : '#EEE'}]}>
+                <Ionicons name={isDarkMode ? "moon" : "sunny"} size={18} color={isDarkMode ? '#FFF' : '#555'} />
+             </TouchableOpacity>
+           </View>
+        </View>
+      )}
+
+      <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContent}>
+        {surahData.verses.map((ayah) => {
+          const isActive = activeAyahId === ayah.id;
+          const isIstiadha = ayah.id === 1;
+          const isBasmalah = ayah.id === 2;
+          const verseNumber = ayah.id - 1; 
+          
+          return (
+            <View key={ayah.id} style={[styles.ayahContainer, {backgroundColor: isActive ? COLORS.highlight : 'transparent'}]}
+              onLayout={(event) => { 
+                ayahPositions.current[ayah.id] = event.nativeEvent.layout.y;
+                if (initialAyah && ayah.id === initialAyah && !hasScrolledToInitial.current) {
+                    scrollToActive(initialAyah);
+                    hasScrolledToInitial.current = true;
+                }
+              }}
+            >
+              <TouchableOpacity activeOpacity={0.8} onPress={() => playAyah(ayah.start)}>
+                <Text style={[
+                    styles.arabicText, 
+                    { fontFamily: 'AlMushaf', fontSize: fontSize, color: isActive ? COLORS.primary : COLORS.text, lineHeight: fontSize * 2 }
+                  ]}>
+                  {ayah.text} 
+                  {!isIstiadha && !isBasmalah && (<Text style={{ fontFamily: 'AlmendraSC', fontSize: fontSize * 0.8, color: COLORS.brackets }}>  ﴿{verseNumber}﴾</Text>)}
+                </Text>
+              </TouchableOpacity>
+              <AyahTimeline ayah={ayah} currentPosition={position} onSeek={handleSeek} colors={COLORS} />
+            </View>
+          );
+        })}
+      </ScrollView>
+
+      <View style={[styles.controlBar, { backgroundColor: COLORS.controlBg, borderColor: isDarkMode ? '#333' : '#F2E8D5' }]}>
+        <TouchableOpacity style={styles.smallBtn} onPress={() => changeSurah('next')}>
+           <Ionicons name="play-skip-back-outline" size={20} color={COLORS.secondaryText} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.controlBtn} onPress={() => skipAyah('next')}>
+           <Ionicons name="play-back" size={28} color={COLORS.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.playBtn, {backgroundColor: COLORS.primary}]} onPress={togglePlayPause}>
+           <Ionicons name={isPlaying ? "pause" : "play"} size={36} color="#FFF" style={{marginLeft: isPlaying ? 0 : 4}} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.controlBtn} onPress={() => skipAyah('prev')}>
+           <Ionicons name="play-forward" size={28} color={COLORS.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.smallBtn} onPress={() => changeSurah('prev')}>
+           <Ionicons name="play-skip-forward-outline" size={20} color={COLORS.secondaryText} />
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  mainContainer: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 150 }, 
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1 },
+  backButton: { padding: 10 },
+  aaButton: { padding: 10, borderWidth: 1, borderColor: '#DDD', borderRadius: 8 },
+  surahName: { fontFamily: 'AlMushaf', fontSize: 26 },
+  
+  settingsPanel: {
+    position: 'absolute', top: 70, right: 20, width: 150, zIndex: 100,
+    borderRadius: 12, borderWidth: 1, padding: 15,
+    shadowColor: "#000", shadowOffset: {width:0, height:2}, shadowOpacity:0.2, shadowRadius:5, elevation:5
+  },
+  settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 },
+  settingDivider: { height: 1, backgroundColor: '#EEE', marginVertical: 10 },
+  sizeBtn: { padding: 5, backgroundColor: '#EEE', borderRadius: 5, width: 30, alignItems: 'center' },
+  modeBtn: { padding: 8, borderRadius: 20 },
+
+  ayahContainer: { marginBottom: 5, width: '100%', paddingVertical: 12, paddingHorizontal: 5, borderRadius: 15 },
+  arabicText: { textAlign: 'center', writingDirection: 'rtl' },
+  timelineWrapper: { height: 30, justifyContent: 'center', width: '80%', alignSelf: 'center', marginTop: 5 },
+  trackArea: { height: 30, justifyContent: 'center', width: '100%' },
+  trackBackground: { height: 3, borderRadius: 1.5, width: '100%', position: 'absolute' },
+  trackFill: { height: 3, borderRadius: 1.5, position: 'absolute', right: 0 }, 
+  thumb: { width: 12, height: 12, borderRadius: 6, position: 'absolute', marginRight: -6, borderWidth: 2, borderColor: '#fff' },
+  
+  controlBar: {
+    position: 'absolute', bottom: 30, left: 20, right: 20,
+    height: 75, borderRadius: 25,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    shadowColor: "#000", shadowOffset: {width: 0, height: 5}, shadowOpacity: 0.15, shadowRadius: 10, elevation: 5,
+    borderWidth: 1
+  },
+  controlBtn: { padding: 10 },
+  smallBtn: { padding: 10, opacity: 0.7 },
+  playBtn: {
+    width: 55, height: 55, borderRadius: 27.5,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.2, shadowRadius: 5
+  }
+});
+
+registry.ts 
+
+import surah1 from './surah_1';
+import surah2 from './surah_2';
+
+// This map allows us to look up data instantly by ID
+const SURAH_REGISTRY = {
+  1: surah1,
+  2: surah2,
+};
+
+export const getSurahData = (id) => {
+  return SURAH_REGISTRY[id] || null;
+};
+
+app.json
+
+{
+  "expo": {
+    "name": "QuranApp",
+    "slug": "quran-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourname.quranapp",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.yourname.quranapp",
+      "permissions": ["WAKE_LOCK"]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
+
+please let me know if you want to review some thing else
