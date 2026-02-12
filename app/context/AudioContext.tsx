@@ -7,6 +7,15 @@ const AudioContext = createContext<any>(null);
 
 export const useAudio = () => useContext(AudioContext);
 
+// 🔥 LIST OF RECITERS
+export const RECITERS = [
+  { id: 'ar.alafasy', name: 'Mishary Rashid Alafasy', sub: 'Alafasy' },
+  { id: 'ar.sudais', name: 'Abdur-Rahman as-Sudais', sub: 'Sudais' },
+  { id: 'ar.abdulbasitmurattal', name: 'Abdul Basit (Murattal)', sub: 'Abdul Basit' },
+  { id: 'ar.hudhaify', name: 'Ali Al-Hudhaify', sub: 'Hudhaify' },
+  { id: 'ar.husary', name: 'Mahmoud Khalil Al-Husary', sub: 'Husary' },
+];
+
 export const AudioProvider = ({ children }: any) => {
   // STATE
   const [isPlaying, setIsPlaying] = useState(false);
@@ -18,16 +27,19 @@ export const AudioProvider = ({ children }: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [favorites, setFavorites] = useState<any[]>([]);
   const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>('system');
+  
+  // 🔥 NEW: CURRENT RECITER (Default: Alafasy)
+  const [activeReciter, setActiveReciter] = useState(RECITERS[0]);
 
   // ENGINE REFS
-  const soundObject = useRef<Audio.Sound | null>(null);
+  const soundObject = useRef<Audio.Sound | null>(null); 
   const nextSoundObject = useRef<Audio.Sound | null>(null);
   const surahRef = useRef<any>(null);
   const indexRef = useRef(0);
   const operationId = useRef(0);
 
   useEffect(() => {
-    loadFavorites();
+    loadSettings();
     setupAudioMode();
     return () => { unloadAll(); };
   }, []);
@@ -44,36 +56,55 @@ export const AudioProvider = ({ children }: any) => {
     } catch (e) { console.log('Audio Mode Error:', e); }
   };
 
+  const loadSettings = async () => {
+    const storedFavs = await AsyncStorage.getItem('favorites');
+    if (storedFavs) setFavorites(JSON.parse(storedFavs));
+
+    // Load saved reciter
+    const storedReciter = await AsyncStorage.getItem('active_reciter');
+    if (storedReciter) setActiveReciter(JSON.parse(storedReciter));
+  };
+
   const unloadAll = async () => {
     if (soundObject.current) {
-      try { await soundObject.current.stopAsync(); await soundObject.current.unloadAsync(); } catch (e) { }
-      soundObject.current = null;
+        try { await soundObject.current.stopAsync(); await soundObject.current.unloadAsync(); } catch(e){}
+        soundObject.current = null;
     }
     if (nextSoundObject.current) {
-      try { await nextSoundObject.current.unloadAsync(); } catch (e) { }
-      nextSoundObject.current = null;
+        try { await nextSoundObject.current.unloadAsync(); } catch(e){}
+        nextSoundObject.current = null;
     }
   };
 
-  const loadFavorites = async () => {
-    const stored = await AsyncStorage.getItem('favorites');
-    if (stored) setFavorites(JSON.parse(stored));
+  // 🔥 NEW: CHANGE RECITER FUNCTION
+  const changeReciter = async (reciter: any) => {
+      if (reciter.id === activeReciter.id) return;
+      
+      // 1. Save new reciter
+      setActiveReciter(reciter);
+      await AsyncStorage.setItem('active_reciter', JSON.stringify(reciter));
+
+      // 2. If playing, we must reload the current surah with NEW audio URLs
+      if (currentSurah) {
+          await playSurah(currentSurah.id, true); // true = force reload
+      }
   };
 
-  const playSurah = async (surahId: number) => {
+  const playSurah = async (surahId: number, forceReload = false) => {
     operationId.current += 1;
     await unloadAll();
     setIsPlaying(false);
     setIsLoading(true);
 
     try {
-      const data = await fetchSurah(surahId);
+      // 🔥 PASS RECITER ID TO API
+      const data = await fetchSurah(surahId, activeReciter.id); 
       if (!data || !data.verses) return;
 
       surahRef.current = data;
       setCurrentSurah(data);
       await playAyah(0);
-    } catch (e) { console.log(e); }
+    } catch(e) { console.log(e); } 
     finally { setIsLoading(false); }
   };
 
@@ -89,52 +120,52 @@ export const AudioProvider = ({ children }: any) => {
     setIsPlaying(true);
 
     try {
-      if (soundObject.current) {
-        try { await soundObject.current.stopAsync(); await soundObject.current.unloadAsync(); } catch (e) { }
-        soundObject.current = null;
-      }
+        if (soundObject.current) {
+            try { await soundObject.current.stopAsync(); await soundObject.current.unloadAsync(); } catch(e){}
+            soundObject.current = null;
+        }
 
-      let newSound: Audio.Sound | null = null;
-      if (nextSoundObject.current && index > 0) {
-        newSound = nextSoundObject.current;
-        nextSoundObject.current = null;
-      } else {
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: surah.verses[index].audio },
-          { shouldPlay: false }
-        );
-        newSound = sound;
-      }
+        let newSound: Audio.Sound | null = null;
+        if (nextSoundObject.current && index > 0) {
+             newSound = nextSoundObject.current;
+             nextSoundObject.current = null;
+        } else {
+             const { sound } = await Audio.Sound.createAsync(
+                { uri: surah.verses[index].audio },
+                { shouldPlay: false } 
+             );
+             newSound = sound;
+        }
 
-      if (operationId.current !== myTicket) {
-        await newSound.unloadAsync();
-        return;
-      }
+        if (operationId.current !== myTicket) {
+            await newSound.unloadAsync();
+            return; 
+        }
 
-      soundObject.current = newSound;
-      newSound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
-      await newSound.playAsync();
+        soundObject.current = newSound;
+        newSound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
+        await newSound.playAsync();
 
-      if (index + 1 < surah.verses.length) {
-        preloadNextAyah(index + 1);
-      }
+        if (index + 1 < surah.verses.length) {
+            preloadNextAyah(index + 1);
+        }
 
     } catch (error) {
-      console.log("Play Ayah Error:", error);
+        console.log("Play Ayah Error:", error);
     }
   };
 
   const preloadNextAyah = async (nextIndex: number) => {
     try {
-      const surah = surahRef.current;
-      if (!surah) return;
-      if (nextSoundObject.current) try { await nextSoundObject.current.unloadAsync(); } catch (e) { }
+        const surah = surahRef.current;
+        if (!surah) return;
+        if (nextSoundObject.current) try { await nextSoundObject.current.unloadAsync(); } catch(e){}
 
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: surah.verses[nextIndex].audio },
-        { shouldPlay: false }
-      );
-      nextSoundObject.current = sound;
+        const { sound } = await Audio.Sound.createAsync(
+            { uri: surah.verses[nextIndex].audio },
+            { shouldPlay: false } 
+        );
+        nextSoundObject.current = sound;
     } catch (e) { console.log('Preload error', e); }
   };
 
@@ -145,22 +176,22 @@ export const AudioProvider = ({ children }: any) => {
     setIsPlaying(status.isPlaying);
 
     if (status.didJustFinish) {
-      const nextIndex = indexRef.current + 1;
-      if (surahRef.current && nextIndex < surahRef.current.verses.length) {
-        playAyah(nextIndex);
-      } else {
-        setIsPlaying(false);
-        setPosition(0);
-      }
+       const nextIndex = indexRef.current + 1;
+       if (surahRef.current && nextIndex < surahRef.current.verses.length) {
+           playAyah(nextIndex);
+       } else {
+           setIsPlaying(false);
+           setPosition(0);
+       }
     }
   };
 
-  const playAyahAdapter = (surah: any, index: number) => {
-    if (surah && surah.id !== surahRef.current?.id) {
-      surahRef.current = surah;
-      setCurrentSurah(surah);
-    }
-    playAyah(index);
+  const playAyahAdapter = (surah: any, index: number, force = false) => {
+      if (surah && surah.id !== surahRef.current?.id) {
+          surahRef.current = surah;
+          setCurrentSurah(surah);
+      }
+      playAyah(index);
   };
 
   const togglePlay = async () => {
@@ -173,7 +204,7 @@ export const AudioProvider = ({ children }: any) => {
     if (!surahRef.current) return;
     const newIndex = direction === 'next' ? indexRef.current + 1 : indexRef.current - 1;
     if (newIndex >= 0 && newIndex < surahRef.current.verses.length) {
-      await playAyah(newIndex);
+       await playAyah(newIndex);
     }
   };
 
@@ -181,7 +212,6 @@ export const AudioProvider = ({ children }: any) => {
     if (soundObject.current) await soundObject.current.setPositionAsync(value);
   };
 
-  // 🔥 UPDATED: SAVES TEXT
   const toggleFavorite = async (surah: any, verse: any) => {
     let newFavs = [...favorites];
     const exists = newFavs.some(f => f.surahId === surah.id && f.verseId === verse.id);
@@ -193,14 +223,13 @@ export const AudioProvider = ({ children }: any) => {
         verseId: verse.id,
         surahName: surah.nameEn,
         verseNum: verse.numberInSurah,
-        text: verse.text // Save text!
+        text: verse.text 
       });
     }
     setFavorites(newFavs);
     await AsyncStorage.setItem('favorites', JSON.stringify(newFavs));
   };
 
-  // 🔥 UPDATED: ACCEPTS VERSE NUM
   const saveLastRead = async (surahId: number, verseId: number, verseNum: number, nameEn: string, nameAr: string) => {
     const data = { surahId, verseId, verseNum, nameEn, nameAr, timestamp: Date.now() };
     await AsyncStorage.setItem('last_read', JSON.stringify(data));
@@ -210,10 +239,10 @@ export const AudioProvider = ({ children }: any) => {
     <AudioContext.Provider value={{
       sound: soundObject.current,
       isPlaying, currentSurah, currentAyahId, position, duration,
-      favorites, themeMode, isLoading,
-      playSurah,
+      favorites, themeMode, isLoading, activeReciter, RECITERS,
+      playSurah, 
       playAyah: playAyahAdapter,
-      togglePlay, skipAyah, seekTo, setThemeMode, toggleFavorite, saveLastRead
+      togglePlay, skipAyah, seekTo, setThemeMode, toggleFavorite, saveLastRead, changeReciter
     }}>
       {children}
     </AudioContext.Provider>
