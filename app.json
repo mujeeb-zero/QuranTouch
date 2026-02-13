@@ -1,43 +1,49 @@
 {
   "expo": {
-    "name": "QuranApp",
+    "name": "The Noble Quran",
     "slug": "quran-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "quranapp",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FDFBF7"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourname.quranapp",
+      "bundleIdentifier": "com.zero.thenobelquran",
+      "buildNumber": "1",
       "infoPlist": {
-        "UIBackgroundModes": ["audio", "fetch"] 
+        "UIBackgroundModes": [
+          "audio",
+          "fetch"
+        ]
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FDFBF7"
       },
-      "package": "com.yourname.quranapp",
-        "permissions": ["FOREGROUND_SERVICE", "WAKE_LOCK"]
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "package": "com.zero.thenobelquran",
+      "versionCode": 1,
+      "permissions": [
+        "FOREGROUND_SERVICE",
+        "WAKE_LOCK"
+      ]
     },
     "plugins": [
       "expo-router",
       "expo-font"
     ],
-    "experiments": {
-      "typedRoutes": true
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "800bc48c-d085-416b-9608-a8fff340beb8"
+      }
     }
   }
 }
