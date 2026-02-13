@@ -1,6 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// 👇 FIXED PATH: Go out of 'api', into 'app', then 'data'
 import { staticSurahList } from '../app/data/surahList';
 
 const BASE_URL = 'https://api.alquran.cloud/v1';
@@ -15,52 +13,50 @@ export const fetchSurahList = async () => {
   }
 };
 
-export const cacheSurahData = async (surahId: number) => {
-  try {
-    const response = await fetch(`${BASE_URL}/surah/${surahId}/ar.alafasy`);
-    const json = await response.json();
-    const data = json.data;
-
-    const surahData = {
-      id: data.number,
-      nameAr: data.name,
-      nameEn: data.englishName,
-      verses: data.ayahs.map((ayah: any) => ({
-        id: ayah.number,
-        numberInSurah: ayah.numberInSurah,
-        text: ayah.text,
-        audio: ayah.audio,
-      })),
-    };
-
-    await AsyncStorage.setItem(`cache_surah_${surahId}`, JSON.stringify(surahData));
-    return true;
-  } catch (e) { return false; }
-};
-
 export const fetchSurah = async (surahId: number) => {
   try {
     const cacheKey = `cache_surah_${surahId}`;
     const cached = await AsyncStorage.getItem(cacheKey);
+    
+    // If cache exists, return it
     if (cached) return JSON.parse(cached);
 
-    const response = await fetch(`${BASE_URL}/surah/${surahId}/ar.alafasy`);
-    const json = await response.json();
-    const data = json.data;
+    // 1. Fetch Arabic (Critical)
+    const arRes = await fetch(`${BASE_URL}/surah/${surahId}/ar.alafasy`);
+    const arJson = await arRes.json();
+    if (!arJson.data) throw new Error("Arabic data not found");
+
+    // 2. Fetch English (Optional - in its own try/catch)
+    let enJson = null;
+    try {
+      const enRes = await fetch(`${BASE_URL}/surah/${surahId}/en.sahih`);
+      enJson = await enRes.json();
+    } catch (e) {
+      console.log("Translation fetch failed, continuing with Arabic only.");
+    }
 
     const surahData = {
-      id: data.number,
-      nameAr: data.name,
-      nameEn: data.englishName,
-      verses: data.ayahs.map((ayah: any) => ({
+      id: arJson.data.number,
+      nameAr: arJson.data.name,
+      nameEn: arJson.data.englishName,
+      verses: arJson.data.ayahs.map((ayah: any, index: number) => ({
         id: ayah.number,
         numberInSurah: ayah.numberInSurah,
         text: ayah.text,
         audio: ayah.audio,
+        // Add translation if it exists, otherwise empty string
+        translation: enJson?.data?.ayahs?.[index]?.text || "" 
       })),
     };
 
     await AsyncStorage.setItem(cacheKey, JSON.stringify(surahData));
     return surahData;
-  } catch (error) { return null; }
+  } catch (error) {
+    console.error("Critical Fetch Error:", error);
+    return null; 
+  }
+};
+
+export const cacheSurahData = async (surahId: number) => {
+  return await fetchSurah(surahId); // Reuses the logic above
 };

@@ -4,7 +4,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-import { cacheSurahData } from '../../api/quranApi';
 import { useAudio } from '../context/AudioContext';
 import { staticSurahList } from '../data/surahList';
 
@@ -17,20 +16,18 @@ export default function HomeScreen() {
   const [lastRead, setLastRead] = useState<any>(null);
 
   useEffect(() => {
-    const initializeSync = async () => {
-      const lastIdStr = await AsyncStorage.getItem('last_bg_download_id');
-      let startId = lastIdStr ? parseInt(lastIdStr) + 1 : 1;
-      for (let i = 0; i < 5; i++) {
-        let currentId = startId + i;
-        if (currentId <= 114) {
-          cacheSurahData(currentId).then(() => {
-            AsyncStorage.setItem('last_bg_download_id', currentId.toString());
-          });
-        }
-      }
-    };
-    initializeSync();
-  }, []);
+  const initializeSync = async () => {
+    // 1. ADD THIS LINE:
+    await AsyncStorage.clear(); 
+    
+    // 2. RUN THE APP ONCE
+    // 3. DELETE THE LINE ABOVE AFTER THE APP LOADS
+    
+    const lastIdStr = await AsyncStorage.getItem('last_bg_download_id');
+    // ... rest of your code
+  };
+  initializeSync();
+}, []);
 
   useFocusEffect(
     useCallback(() => {

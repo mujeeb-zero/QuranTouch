@@ -15,9 +15,14 @@ export default function FavoritesScreen() {
   };
 
   const handlePress = (item: any) => {
-    // Navigate to player and play this Surah
-    playSurah(item.surahId);
-    router.push({ pathname: '/player', params: { surahId: item.surahId, initialAyah: item.verseNum } });
+    router.push({
+      pathname: '/player',
+      params: { 
+        surahId: item.surahId, 
+        initialAyah: item.verseNum, 
+        // ❌ Removed autoplay: 'true'
+      }
+    });
   };
 
   return (
