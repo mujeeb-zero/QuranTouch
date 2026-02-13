@@ -25,7 +25,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourname.quranapp",
-      "permissions": ["WAKE_LOCK"]
+        "permissions": ["FOREGROUND_SERVICE", "WAKE_LOCK"]
     },
     "web": {
       "bundler": "metro",
