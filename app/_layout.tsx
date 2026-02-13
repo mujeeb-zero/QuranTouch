@@ -1,17 +1,20 @@
-// app/_layout.tsx
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as BackgroundFetch from 'expo-background-fetch';
+import { useFonts } from 'expo-font'; // 👈 Added
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen'; // 👈 Added
 import * as TaskManager from 'expo-task-manager';
 import React, { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native'; // 👈 Added
 import { cacheSurahData } from '../api/quranApi';
-
-// 👇 Import your AudioProvider
 import { AudioProvider } from './context/AudioContext';
+
+// 1. Prevent the splash screen from hiding automatically
+SplashScreen.preventAutoHideAsync();
 
 const BACKGROUND_DOWNLOAD_TASK = 'background-quran-download';
 
-// Define the background task for Islam 360 style downloading
+// Define the background task (Keep your existing logic)
 TaskManager.defineTask(BACKGROUND_DOWNLOAD_TASK, async () => {
   try {
     const lastIdStr = await AsyncStorage.getItem('last_bg_download_id');
@@ -31,6 +34,23 @@ TaskManager.defineTask(BACKGROUND_DOWNLOAD_TASK, async () => {
 });
 
 export default function RootLayout() {
+  // 2. Load Fonts Hook
+  const [fontsLoaded] = useFonts({
+    // ⚠️ Ensure these paths match your actual folder structure!
+    'AlMushaf': require('../assets/fonts/AlMushaf.ttf'), 
+    'AlmendraSC': require('../assets/fonts/AlmendraSC.ttf'),
+    'BrunoAceSC': require('../assets/fonts/BrunoAceSC.ttf'),
+    'BrunoAceSC': require('../assets/fonts/Jura.ttf'),
+  });
+
+  // 3. Hide Splash Screen when fonts are ready
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
+  // 4. Background Task Registration (Your existing logic)
   useEffect(() => {
     const registerTask = async () => {
       try {
@@ -49,8 +69,16 @@ export default function RootLayout() {
     registerTask();
   }, []);
 
+  // 5. Loading State: Don't render the app until fonts are loaded
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#BFA868" />
+      </View>
+    );
+  }
+
   return (
-    // 👇 WRAP EVERYTHING IN AUDIOPROVIDER
     <AudioProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />

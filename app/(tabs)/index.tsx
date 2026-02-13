@@ -16,18 +16,18 @@ export default function HomeScreen() {
   const [lastRead, setLastRead] = useState<any>(null);
 
   useEffect(() => {
-  const initializeSync = async () => {
-    // 1. ADD THIS LINE:
-    await AsyncStorage.clear(); 
-    
-    // 2. RUN THE APP ONCE
-    // 3. DELETE THE LINE ABOVE AFTER THE APP LOADS
-    
-    const lastIdStr = await AsyncStorage.getItem('last_bg_download_id');
-    // ... rest of your code
-  };
-  initializeSync();
-}, []);
+    const initializeSync = async () => {
+      // 1. ADD THIS LINE:
+      await AsyncStorage.clear();
+
+      // 2. RUN THE APP ONCE
+      // 3. DELETE THE LINE ABOVE AFTER THE APP LOADS
+
+      const lastIdStr = await AsyncStorage.getItem('last_bg_download_id');
+      // ... rest of your code
+    };
+    initializeSync();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -118,11 +118,11 @@ export default function HomeScreen() {
                 <Text style={styles.cardMainText} numberOfLines={1}>{lastRead?.nameAr || "Al-Fatiha"}</Text>
 
                 {/* 🔥 FIX: Display Verse NUMBER (relative) not ID (global) */}
-                <Text style={styles.cardSubText}>Ayah {lastRead?.verseNum || "1"}</Text>
+                <Text style={[styles.cardSubText, { color: '#FFF' }]}>Ayah {lastRead?.verseNum || "1"}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.miniCard, { backgroundColor: '#BFA868' }]} onPress={() => router.push('/favorites')}>
-                <Text style={[styles.cardLabel, { color: '#FFF' }]}>FAVORITES</Text>
+              <TouchableOpacity style={[styles.miniCard, { backgroundColor: '#252525' }]} onPress={() => router.push('/favorites')}>
+                <Text style={styles.cardLabel}>FAVORITES</Text>
                 <Text style={styles.cardMainText}>{favorites?.length || 0} Saved</Text>
                 <Text style={[styles.cardSubText, { color: '#FFF' }]}>View All</Text>
               </TouchableOpacity>
@@ -136,10 +136,20 @@ export default function HomeScreen() {
               onPress={() => router.push({ pathname: '/player', params: { surahId: item.number } })}
             >
               <View style={styles.numberCircle}><Text style={styles.numberText}>{item.number}</Text></View>
-              <View style={{ flex: 1, marginLeft: 15 }}>
-                <Text style={styles.surahTitle}>{item.englishName}</Text>
-                <Text style={styles.surahSubtitle}>{item.numberOfAyahs} Verses</Text>
-              </View>
+              <View style={{ flex: 1, marginLeft: 15, justifyContent: 'center' }}>
+  {/* Top: Surah Name */}
+  <Text style={styles.surahTitle}>{item.englishName}</Text>
+
+  {/* Middle: Translation (BrunoAceSC Font) */}
+  <Text style={styles.surahSubtitle}>
+    {item.englishNameTranslation}
+  </Text>
+
+  {/* Bottom: Verse Count (Smaller & Different Color) */}
+  <Text style={styles.versesText}>
+    {item.numberOfAyahs} Verses
+  </Text>
+</View>
               <Text style={styles.arabicName}>{item.name}</Text>
             </TouchableOpacity>
           )}
@@ -183,19 +193,20 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FDFBF7' },
   fixedHeader: { paddingHorizontal: 20, paddingTop: 10, backgroundColor: '#FDFBF7' },
   brandingContainer: { alignItems: 'center', marginBottom: 15 },
-  brandingTitle: { fontSize: 22, fontWeight: 'bold', color: '#BFA868', fontFamily: 'AlmendraSC' },
+  brandingTitle: { fontSize: 25, fontWeight: 'bold', color: '#847347', fontFamily: 'AlmendraSC' },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 25, paddingHorizontal: 15, paddingVertical: 10, borderWidth: 1, borderColor: '#BFA868' },
-  searchInput: { flex: 1, fontSize: 16, textAlign: 'left', marginRight: 10 },
-  miniCard: { flex: 1, padding: 15, borderRadius: 12, height: 110, elevation: 4, justifyContent: 'center' },
-  cardLabel: { color: '#BFA868', fontSize: 10, fontWeight: 'bold' },
-  cardMainText: { color: '#FFF', fontSize: 18, marginTop: 5, fontFamily: 'AlMushaf' },
-  cardSubText: { color: '#CCC', fontSize: 12, marginTop: 2 },
+  searchInput: { flex: 1, fontSize: 16, textAlign: 'left', color: '#333', marginRight: 10, fontFamily: 'Jura' },
+  miniCard: { flex: 1, padding: 15, borderRadius: 12, height: 120, elevation: 4, justifyContent: 'center' },
+  cardLabel: { color: '#BFA868', fontSize: 16, fontFamily: 'Jura' },
+  cardMainText: { color: '#FFF', fontSize: 18, marginTop: 10, fontFamily: 'AlmendraSC' },
+  cardSubText: { color: '#CCC', fontSize: 15, marginTop: 5, fontFamily: 'Jura' },
   surahCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#EEE' },
-  numberCircle: { width: 35, height: 35, borderRadius: 18, borderWidth: 1, borderColor: '#BFA868', justifyContent: 'center', alignItems: 'center' },
-  numberText: { color: '#BFA868', fontSize: 12 },
-  surahTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  surahSubtitle: { fontSize: 11, color: '#888' },
-  arabicName: { fontSize: 18, fontFamily: 'AlMushaf' },
+  numberCircle: {width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: '#333', justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
+  numberText: { color: '#333', fontSize: 20, fontFamily: 'AlmendraSC', textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false, lineHeight: 22 },
+  surahTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', fontFamily: 'AlmendraSC' },
+  surahSubtitle: { fontSize: 12, color: '#333', fontFamily: 'BrunoAceSC' },
+  versesText: { fontSize: 10, color: '#333', marginTop: 2, fontFamily: 'Jura' },
+  arabicName: { fontSize: 24, fontFamily: 'AlMushaf' },
 
   // MINI PLAYER
   miniPlayerContainer: {

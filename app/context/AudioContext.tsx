@@ -3,6 +3,37 @@ import { Audio } from 'expo-av';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { fetchSurah } from '../../api/quranApi';
 
+// 1. Defined Reciters
+// 🆕 UPDATED RECITERS LIST WITH IMAGES
+export const RECITERS = [
+  { 
+    id: 'mishary', 
+    name: 'Mishary Alafasy', 
+    urlPath: 'Alafasy_128kbps',
+    // ⬇️ Use require for local images
+    image: require('../../assets/reciters/mishary.jpg') 
+  },
+  { 
+    id: 'sudais', 
+    name: 'Abdurrahmaan As-Sudais', 
+    urlPath: 'Abdurrahmaan_As-Sudais_192kbps',
+    image: require('../../assets/reciters/sudais.jpg')
+  },
+  { 
+    id: 'basit', 
+    name: 'Abdul Basit', 
+    urlPath: 'Abdul_Basit_Murattal_192kbps',
+    image: require('../../assets/reciters/basit.jpg')
+  },
+];
+
+// 2. URL Generator
+const getReciterUrl = (reciterPath: string, surahId: number, verseIndex: number) => {
+  const s = String(surahId).padStart(3, '0');
+  const v = String(verseIndex + 1).padStart(3, '0');
+  return `https://everyayah.com/data/${reciterPath}/${s}${v}.mp3`;
+};
+
 const AudioContext = createContext<any>(null);
 
 export const useAudio = () => useContext(AudioContext);
@@ -17,8 +48,13 @@ export const AudioProvider = ({ children }: any) => {
   const [favorites, setFavorites] = useState<any[]>([]);
   const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>('system');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [activeReciter, setActiveReciter] = useState(RECITERS[0]);
 
   // --- REFS ---
+  // 🆕 Vital: We use a Ref to track the reciter instantly inside audio callbacks
+  const activeReciterRef = useRef(RECITERS[0]); 
+  
   const soundRef = useRef<Audio.Sound | null>(null);
   const nextPreloadedSoundRef = useRef<Audio.Sound | null>(null);
   const prevPreloadedSoundRef = useRef<Audio.Sound | null>(null);
@@ -30,22 +66,34 @@ export const AudioProvider = ({ children }: any) => {
 
   useEffect(() => {
     loadFavorites();
+    loadReciter();
     setupAudioMode();
 
     return () => {
-      // Cleanup on unmount
-      if (soundRef.current) {
-        soundRef.current.setOnPlaybackStatusUpdate(null);
-        soundRef.current.unloadAsync();
-      }
-      if (nextPreloadedSoundRef.current) {
-        nextPreloadedSoundRef.current.unloadAsync();
-      }
-      if (prevPreloadedSoundRef.current) {
-        prevPreloadedSoundRef.current.unloadAsync();
-      }
+      killAllSounds();
     };
   }, []);
+
+  // 🆕 CHANGING RECITER (Now cleans up old audio)
+  const changeReciter = async (reciter: any) => {
+    setActiveReciter(reciter);
+    activeReciterRef.current = reciter; // Update Ref immediately
+    await AsyncStorage.setItem('preferred_reciter', JSON.stringify(reciter));
+    
+    // 🛑 CRITICAL: Stop current AND kill preloaded next/prev files
+    // otherwise the "Next" button will play the old voice from memory.
+    await killAllSounds();
+    setIsPlaying(false);
+  };
+
+  const loadReciter = async () => {
+    const stored = await AsyncStorage.getItem('preferred_reciter');
+    if (stored) {
+        const parsed = JSON.parse(stored);
+        setActiveReciter(parsed);
+        activeReciterRef.current = parsed;
+    }
+  };
 
   const setupAudioMode = async () => {
     try {
@@ -56,9 +104,7 @@ export const AudioProvider = ({ children }: any) => {
         shouldDuckAndroid: true,
         playThroughEarpieceAndroid: false,
       });
-    } catch (e) {
-      console.log('Audio Mode Error:', e);
-    }
+    } catch (e) { console.log('Audio Mode Error:', e); }
   };
 
   const loadFavorites = async () => {
@@ -66,130 +112,99 @@ export const AudioProvider = ({ children }: any) => {
     if (stored) setFavorites(JSON.parse(stored));
   };
 
+  // --- KILLER FUNCTIONS ---
+  const killAllSounds = async () => {
+      await killCurrentSound();
+      await killNextPreloadedSound();
+      await killPrevPreloadedSound();
+  };
+
   const killCurrentSound = async () => {
     if (soundRef.current) {
       try {
-        // ⚡️ INSTANTLY detach listener. Do not await.
-        // This prevents the "Auto-Next" logic from firing while we are stopping.
         soundRef.current.setOnPlaybackStatusUpdate(null);
-        
         await soundRef.current.stopAsync();
         await soundRef.current.unloadAsync();
-      } catch (error) {
-        // Ignore errors
-      }
+      } catch (error) {}
       soundRef.current = null;
     }
   };
 
   const killNextPreloadedSound = async () => {
     if (nextPreloadedSoundRef.current) {
-      try {
-        await nextPreloadedSoundRef.current.unloadAsync();
-      } catch (error) {
-        // Ignore errors
-      }
+      try { await nextPreloadedSoundRef.current.unloadAsync(); } catch (error) {}
       nextPreloadedSoundRef.current = null;
     }
   };
 
   const killPrevPreloadedSound = async () => {
     if (prevPreloadedSoundRef.current) {
-      try {
-        await prevPreloadedSoundRef.current.unloadAsync();
-      } catch (error) {
-        // Ignore errors
-      }
+      try { await prevPreloadedSoundRef.current.unloadAsync(); } catch (error) {}
       prevPreloadedSoundRef.current = null;
     }
   };
 
-  // --- PRELOAD NEXT AND PREVIOUS AYAHS ---
+  // --- PRELOAD ---
   const preloadAdjacentAyahs = async (currentIndex: number) => {
-  if (!surahRef.current) return;
+    if (!surahRef.current) return;
 
-    // Preload PREVIOUS first (for faster backward navigation)
+    // Preload Prev
     const prevIndex = currentIndex - 1;
     if (prevIndex >= 0 && !isPreloadingPrev.current) {
       isPreloadingPrev.current = true;
       try {
         await killPrevPreloadedSound();
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: surahRef.current.verses[prevIndex].audio },
-          { shouldPlay: false }
-        );
-        await sound.getStatusAsync(); // ensure it's loaded
+        // 🆕 Use Ref here to get the LATEST reciter
+        const audioUrl = getReciterUrl(activeReciterRef.current.urlPath, surahRef.current.id, prevIndex);
+        const { sound } = await Audio.Sound.createAsync({ uri: audioUrl }, { shouldPlay: false });
         prevPreloadedSoundRef.current = sound;
-      } catch (error) {
-        console.log("Previous preload error:", error);
-      } finally {
-        isPreloadingPrev.current = false;
-      }
+      } catch (error) { console.log("Prev preload error", error); } 
+      finally { isPreloadingPrev.current = false; }
     }
 
-    // Then preload NEXT
+    // Preload Next
     const nextIndex = currentIndex + 1;
     if (nextIndex < surahRef.current.verses.length && !isPreloadingNext.current) {
       isPreloadingNext.current = true;
       try {
         await killNextPreloadedSound();
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: surahRef.current.verses[nextIndex].audio },
-          { shouldPlay: false }
-        );
-        await sound.getStatusAsync();
+        // 🆕 Use Ref here too
+        const audioUrl = getReciterUrl(activeReciterRef.current.urlPath, surahRef.current.id, nextIndex);
+        const { sound } = await Audio.Sound.createAsync({ uri: audioUrl }, { shouldPlay: false });
         nextPreloadedSoundRef.current = sound;
-      } catch (error) {
-        console.log("Next preload error:", error);
-      } finally {
-        isPreloadingNext.current = false;
-      }
+      } catch (error) { console.log("Next preload error", error); } 
+      finally { isPreloadingNext.current = false; }
     }
   };
 
   // --- PLAYBACK STATUS ---
   const onPlaybackStatusUpdate = async (status: any) => {
     if (!status.isLoaded) return;
-
-    // Use Refs for frequent updates to avoid re-renders if not needed by UI
-    // (Only set state if you need to update the progress bar)
     setPosition(status.positionMillis);
     setDuration(status.durationMillis || 1);
     setIsPlaying(status.isPlaying);
 
-    // AUTO-NEXT LOGIC
     if (status.didJustFinish) {
       const nextIndex = indexRef.current + 1;
       
       if (surahRef.current && nextIndex < surahRef.current.verses.length) {
-        
-        // Check if the preloaded sound is ready
         if (nextPreloadedSoundRef.current) {
-          console.log("Using Preloaded Sound"); // Debugging
-          
-          // 1. Swap References
+          // Swap logic
           const nextSound = nextPreloadedSoundRef.current;
-          nextPreloadedSoundRef.current = null; // Clear the preload slot
+          nextPreloadedSoundRef.current = null;
           
-          // 2. Kill old sound (fire and forget to save time)
           const oldSound = soundRef.current;
           soundRef.current = nextSound;
           if (oldSound) { oldSound.unloadAsync(); }
 
-          // 3. Update State
           indexRef.current = nextIndex;
           setCurrentAyahId(surahRef.current.verses[nextIndex].id);
           setPosition(0);
 
-          // 4. PLAY IMMEDIATELY
           await nextSound.playAsync();
           nextSound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
-
-          // 5. Start preloading the one after next
           preloadAdjacentAyahs(nextIndex);
         } else {
-          // Fallback: If network was too slow, we have to fetch manually
-          console.log("Preload missed - Fetching manually");
           await playAyah(nextIndex);
         }
       } else {
@@ -198,11 +213,10 @@ export const AudioProvider = ({ children }: any) => {
       }
     }
   };
+
   // --- PLAY FUNCTIONS ---
   const playSurah = async (surahId: number) => {
-    await killCurrentSound();
-    await killNextPreloadedSound();
-    await killPrevPreloadedSound();
+    await killAllSounds();
     setIsLoading(true);
 
     try {
@@ -222,13 +236,9 @@ export const AudioProvider = ({ children }: any) => {
   const playAyah = async (index: number) => {
     if (!surahRef.current || !surahRef.current.verses[index]) return;
 
-    // RESTART GUARD
     if (index === indexRef.current && soundRef.current) {
-      if (isPlaying) {
-        await soundRef.current.setPositionAsync(0);
-      } else {
-        await soundRef.current.playAsync();
-      }
+      if (isPlaying) await soundRef.current.setPositionAsync(0);
+      else await soundRef.current.playAsync();
       return;
     }
 
@@ -236,44 +246,28 @@ export const AudioProvider = ({ children }: any) => {
     isBusy.current = true;
 
     try {
-      // 1. 🛡️ SAFETY FIRST: Detach listener on existing sound IMMEDIATELY.
-      // This stops the "Ghost" auto-next from firing if the current ayah finishes 
-      // while we are processing the click.
-      if (soundRef.current) {
-        soundRef.current.setOnPlaybackStatusUpdate(null);
-      }
-
-      // 2. Kill the current sound
+      if (soundRef.current) soundRef.current.setOnPlaybackStatusUpdate(null);
       await killCurrentSound();
 
-      // 3. CLEANUP PRELOADS (Critical for Back Button)
-      // If we are NOT going to the next sequential Ayah (e.g. going back 2->1),
-      // we must kill the "Next" preload (which holds Ayah 3) so it doesn't linger.
-      if (nextPreloadedSoundRef.current && index !== indexRef.current + 1) {
-        await killNextPreloadedSound();
-      }
-      
-      // Also cleanup Prev preload if we are jumping far
-      if (prevPreloadedSoundRef.current && index !== indexRef.current - 1) {
-        await killPrevPreloadedSound();
-      }
+      // Check preloads to avoid glitches, but ensure we kill if jumping non-sequentially
+      if (nextPreloadedSoundRef.current && index !== indexRef.current + 1) await killNextPreloadedSound();
+      if (prevPreloadedSoundRef.current && index !== indexRef.current - 1) await killPrevPreloadedSound();
 
-      // 4. Update UI state
       setCurrentAyahId(surahRef.current.verses[index].id);
       indexRef.current = index;
       setPosition(0);
       setIsPlaying(true);
 
-      // 5. Create and play new sound
+      // 🆕 Use Ref for URL generation
+      const audioUrl = getReciterUrl(activeReciterRef.current.urlPath, surahRef.current.id, index);
+
       const { sound } = await Audio.Sound.createAsync(
-        { uri: surahRef.current.verses[index].audio },
+        { uri: audioUrl },
         { shouldPlay: true }
       );
 
       soundRef.current = sound;
       sound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
-
-      // 6. Start preloading for the NEW position
       preloadAdjacentAyahs(index);
 
     } catch (error) {
@@ -283,149 +277,57 @@ export const AudioProvider = ({ children }: any) => {
     }
   };
 
-  
-  // --- SKIP AYAH ---
-  // --- SKIP AYAH (Fully optimized for RTL & instant backward) ---
   const skipAyah = async (direction: 'next' | 'prev') => {
     if (!surahRef.current || isBusy.current) return;
-
-    const newIndex = direction === 'next'
-      ? indexRef.current + 1
-      : indexRef.current - 1;
-
+    const newIndex = direction === 'next' ? indexRef.current + 1 : indexRef.current - 1;
     if (newIndex < 0 || newIndex >= surahRef.current.verses.length) return;
 
-    // --- Use preloaded sound if available ---
     if (direction === 'next' && nextPreloadedSoundRef.current) {
-      try {
-        isBusy.current = true;
-        await killCurrentSound();
-
-        soundRef.current = nextPreloadedSoundRef.current;
-        nextPreloadedSoundRef.current = null;
-
-        // Update state
-        indexRef.current = newIndex;
-        setCurrentAyahId(surahRef.current.verses[newIndex].id);
-        setPosition(0);
-        setIsPlaying(true);
-
-        // Verify sound is loaded before playing
-        const status = await soundRef.current.getStatusAsync();
-        if (status.isLoaded) {
-          await soundRef.current.playAsync();
-          soundRef.current.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
-          preloadAdjacentAyahs(newIndex); // preload next set
-        } else {
-          // Fallback if preloaded sound isn't ready
-          await playAyah(newIndex);
-        }
-      } catch (error) {
-        console.log("Skip Next Error:", error);
-        await playAyah(newIndex);
-      } finally {
-        isBusy.current = false;
-      }
-    }
-    // --- 🆕 PREVIOUS direction – uses preloaded sound with priority ---
-    else if (direction === 'prev' && prevPreloadedSoundRef.current) {
-      try {
-        isBusy.current = true;
-        await killCurrentSound();
-
-        soundRef.current = prevPreloadedSoundRef.current;
-        prevPreloadedSoundRef.current = null;
-
-        // Update state
-        indexRef.current = newIndex;
-        setCurrentAyahId(surahRef.current.verses[newIndex].id);
-        setPosition(0);
-        setIsPlaying(true);
-
-        const status = await soundRef.current.getStatusAsync();
-        if (status.isLoaded) {
-          await soundRef.current.playAsync();
-          soundRef.current.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
-          preloadAdjacentAyahs(newIndex);
-        } else {
-          await playAyah(newIndex);
-        }
-      } catch (error) {
-        console.log("Skip Prev Error:", error);
-        await playAyah(newIndex);
-      } finally {
-        isBusy.current = false;
-      }
-    }
-    else {
-      // Fallback: no preload, use regular playAyah
+        // Fast path for next
+         isBusy.current = true;
+         try {
+            await killCurrentSound();
+            soundRef.current = nextPreloadedSoundRef.current;
+            nextPreloadedSoundRef.current = null;
+            
+            indexRef.current = newIndex;
+            setCurrentAyahId(surahRef.current.verses[newIndex].id);
+            setPosition(0);
+            setIsPlaying(true);
+            
+            await soundRef.current.playAsync();
+            soundRef.current.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
+            preloadAdjacentAyahs(newIndex);
+         } catch(e) { await playAyah(newIndex); } 
+         finally { isBusy.current = false; }
+    } else {
       await playAyah(newIndex);
     }
   };
 
-  // --- TOGGLE PLAY ---
-  const togglePlay = async () => {
-    if (!soundRef.current) return;
-
-    if (isPlaying) {
-      await soundRef.current.pauseAsync();
-    } else {
-      await soundRef.current.playAsync();
-    }
-  };
-
-  // --- SEEK ---
-  const seekTo = async (value: number) => {
-    if (soundRef.current) {
-      await soundRef.current.setPositionAsync(value);
-    }
-  };
-
-  // --- FAVORITES ---
+  const togglePlay = async () => { if (soundRef.current) isPlaying ? await soundRef.current.pauseAsync() : await soundRef.current.playAsync(); };
+  const seekTo = async (value: number) => { if (soundRef.current) await soundRef.current.setPositionAsync(value); };
+  
+  // --- FAVORITES & LAST READ (Unchanged) ---
   const toggleFavorite = async (surah: any, verse: any) => {
     let newFavs = [...favorites];
     const exists = newFavs.some(f => f.surahId === surah.id && f.verseId === verse.id);
-
-    if (exists) {
-      newFavs = newFavs.filter(f => !(f.surahId === surah.id && f.verseId === verse.id));
-    } else {
-      newFavs.push({
-        surahId: surah.id,
-        verseId: verse.id,
-        surahName: surah.nameEn,
-        verseNum: verse.numberInSurah,
-        text: verse.text
-      });
-    }
-
+    if (exists) newFavs = newFavs.filter(f => !(f.surahId === surah.id && f.verseId === verse.id));
+    else newFavs.push({ surahId: surah.id, verseId: verse.id, surahName: surah.nameEn, verseNum: verse.numberInSurah, text: verse.text });
     setFavorites(newFavs);
     await AsyncStorage.setItem('favorites', JSON.stringify(newFavs));
   };
-
-  // --- LAST READ ---
+  
   const saveLastRead = async (surahId: number, verseId: number, verseNum: number, nameEn: string, nameAr: string) => {
-    const data = {
-      surahId,
-      verseId,
-      verseNum,
-      nameEn,
-      nameAr,
-      timestamp: Date.now()
-    };
+    const data = { surahId, verseId, verseNum, nameEn, nameAr, timestamp: Date.now() };
     await AsyncStorage.setItem('last_read', JSON.stringify(data));
   };
 
   return (
     <AudioContext.Provider
       value={{
-        isPlaying,
-        currentSurah,
-        currentAyahId,
-        position,
-        duration,
-        favorites,
-        themeMode,
-        isLoading,
+        isPlaying, currentSurah, currentAyahId, position, duration, favorites, themeMode, isLoading,
+        activeReciter, RECITERS, changeReciter,
         playSurah,
         playAyah: (surah: any, idx: number) => {
           if (surah.id !== surahRef.current?.id) {
@@ -434,12 +336,7 @@ export const AudioProvider = ({ children }: any) => {
           }
           playAyah(idx);
         },
-        togglePlay,
-        skipAyah,
-        seekTo,
-        setThemeMode,
-        toggleFavorite,
-        saveLastRead,
+        togglePlay, skipAyah, seekTo, setThemeMode, toggleFavorite, saveLastRead,
       }}>
       {children}
     </AudioContext.Provider>
