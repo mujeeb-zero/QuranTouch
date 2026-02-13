@@ -1,20 +1,20 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as BackgroundFetch from 'expo-background-fetch';
-import { useFonts } from 'expo-font'; // 👈 Added
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen'; // 👈 Added
+import * as SplashScreen from 'expo-splash-screen';
 import * as TaskManager from 'expo-task-manager';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native'; // 👈 Added
+import { ActivityIndicator, View } from 'react-native'; // 👈 Added imports
 import { cacheSurahData } from '../api/quranApi';
 import { AudioProvider } from './context/AudioContext';
 
-// 1. Prevent the splash screen from hiding automatically
-SplashScreen.preventAutoHideAsync();
+// 1. Prevent auto hide (Safe version)
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const BACKGROUND_DOWNLOAD_TASK = 'background-quran-download';
 
-// Define the background task (Keep your existing logic)
+// Define Background Task
 TaskManager.defineTask(BACKGROUND_DOWNLOAD_TASK, async () => {
   try {
     const lastIdStr = await AsyncStorage.getItem('last_bg_download_id');
@@ -34,23 +34,17 @@ TaskManager.defineTask(BACKGROUND_DOWNLOAD_TASK, async () => {
 });
 
 export default function RootLayout() {
-  // 2. Load Fonts Hook
+  // 2. Load Fonts (FIXED: Unique keys for each font)
   const [fontsLoaded] = useFonts({
-    // ⚠️ Ensure these paths match your actual folder structure!
     'AlMushaf': require('../assets/fonts/AlMushaf.ttf'), 
     'AlmendraSC': require('../assets/fonts/AlmendraSC.ttf'),
     'BrunoAceSC': require('../assets/fonts/BrunoAceSC.ttf'),
-    'BrunoAceSC': require('../assets/fonts/Jura.ttf'),
+    // 👇 Fixed these keys (was 'BrunoAceSC' for all of them)
+    'Jura': require('../assets/fonts/Jura.ttf'),
+    'Cinzel': require('../assets/fonts/Cinzel.ttf') // Check if file is named Cinzel.ttf or Cinzel-Regular.ttf
   });
 
-  // 3. Hide Splash Screen when fonts are ready
-  useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
-  // 4. Background Task Registration (Your existing logic)
+  // 3. Register Background Task
   useEffect(() => {
     const registerTask = async () => {
       try {
@@ -69,10 +63,18 @@ export default function RootLayout() {
     registerTask();
   }, []);
 
-  // 5. Loading State: Don't render the app until fonts are loaded
+  // 4. Hide Splash Screen ONLY when fonts are ready
+  useEffect(() => {
+    if (fontsLoaded) {
+      // .catch() prevents the "No native splash screen registered" crash on reload
+      SplashScreen.hideAsync().catch((e) => console.log("Splash error:", e));
+    }
+  }, [fontsLoaded]);
+
+  // 5. Loading State
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FDFBF7' }}>
         <ActivityIndicator size="large" color="#BFA868" />
       </View>
     );
@@ -81,9 +83,8 @@ export default function RootLayout() {
   return (
     <AudioProvider>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="player" />
-        <Stack.Screen name="favorites" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="player" options={{ presentation: 'modal', headerShown: false }} />
       </Stack>
     </AudioProvider>
   );

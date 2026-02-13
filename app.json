@@ -16,7 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.yourname.quranapp",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": ["audio", "fetch"] 
       }
     },
     "android": {

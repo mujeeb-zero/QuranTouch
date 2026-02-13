@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, SafeAreaView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
+import { FlatList, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAudio } from '../context/AudioContext';
 import { staticSurahList } from '../data/surahList';
 
@@ -83,11 +83,15 @@ export default function HomeScreen() {
       <StatusBar barStyle="dark-content" />
 
       <View style={styles.fixedHeader}>
-        <View style={styles.brandingContainer}><Text style={styles.brandingTitle}>THE NOBLE QURAN</Text></View>
+        {/* Header Section */}
+<View style={styles.brandingContainer}>
+  <Text style={styles.brandingTitle}>The Noble Quran</Text>
+  
+</View>
 
         {/* 🔥 UPDATED SEARCH BAR */}
         <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#BFA868" style={{ marginRight: 10 }} />
+          <Ionicons name="search" size={20} color="#fee08c" style={{ marginRight: 10 }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search by Surah or Number..."
@@ -161,7 +165,7 @@ export default function HomeScreen() {
         <View style={styles.miniPlayerContainer}>
           <View style={styles.controlsRow}>
             <TouchableOpacity onPress={() => skipSurah('next')} style={styles.skipBtn}>
-              <Ionicons name="play-skip-back" size={24} color="#BFA868" />
+              <Ionicons name="play-skip-back" size={24} color="#fee08c" />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={togglePlay} style={styles.miniPlayButton}>
@@ -174,7 +178,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => skipSurah('prev')} style={styles.skipBtn}>
-              <Ionicons name="play-skip-forward" size={24} color="#BFA868" />
+              <Ionicons name="play-skip-forward" size={24} color="#fee08c" />
             </TouchableOpacity>
           </View>
 
@@ -193,36 +197,82 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FDFBF7' },
   fixedHeader: { paddingHorizontal: 20, paddingTop: 10, backgroundColor: '#FDFBF7' },
   brandingContainer: { alignItems: 'center', marginBottom: 15 },
-  brandingTitle: { fontSize: 25, fontWeight: 'bold', color: '#847347', fontFamily: 'AlmendraSC' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 25, paddingHorizontal: 15, paddingVertical: 10, borderWidth: 1, borderColor: '#BFA868' },
+  brandingTitle: { fontSize: 25, fontWeight: 'bold', color: '#847347', fontFamily: 'Cinzel' },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 25, paddingHorizontal: 15, paddingVertical: 12, borderWidth: 1, borderColor: '#fee08c' },
   searchInput: { flex: 1, fontSize: 16, textAlign: 'left', color: '#333', marginRight: 10, fontFamily: 'Jura' },
   miniCard: { flex: 1, padding: 15, borderRadius: 12, height: 120, elevation: 4, justifyContent: 'center' },
-  cardLabel: { color: '#BFA868', fontSize: 16, fontFamily: 'Jura' },
-  cardMainText: { color: '#FFF', fontSize: 18, marginTop: 10, fontFamily: 'AlmendraSC' },
+  cardLabel: { color: '#ffffff', fontSize: 14, fontFamily: 'Jura' },
+  cardMainText: { color: '#fee08c', fontSize: 16, marginTop: 10, fontFamily: 'Cinzel' },
   cardSubText: { color: '#CCC', fontSize: 15, marginTop: 5, fontFamily: 'Jura' },
   surahCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#EEE' },
-  numberCircle: {width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: '#333', justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
-  numberText: { color: '#333', fontSize: 20, fontFamily: 'AlmendraSC', textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false, lineHeight: 22 },
-  surahTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', fontFamily: 'AlmendraSC' },
+  numberCircle: {width: 43, height: 43, borderRadius: 19, borderWidth: 1, borderColor: '#333', justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
+  numberText: { color: '#333', fontSize: 19, fontFamily: 'AlmendraSC', textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false, lineHeight: 19 },
+  surahTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', fontFamily: 'Cinzel' },
   surahSubtitle: { fontSize: 12, color: '#333', fontFamily: 'BrunoAceSC' },
   versesText: { fontSize: 10, color: '#333', marginTop: 2, fontFamily: 'Jura' },
-  arabicName: { fontSize: 24, fontFamily: 'AlMushaf' },
+  arabicName: { fontSize: 26, fontFamily: 'AlMushaf' },
 
   // MINI PLAYER
   miniPlayerContainer: {
-    position: 'absolute', bottom: 15, left: 15, right: 15,
-    backgroundColor: '#1A1A1A', borderRadius: 15, padding: 12,
-    flexDirection: 'row', alignItems: 'center', elevation: 10, zIndex: 100
+    position: 'absolute',
+    bottom: 25,
+    left: 20,
+    right: 20,
+    backgroundColor: '#333', // Darker black background
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 4 }
   },
-  controlsRow: { flexDirection: 'row', alignItems: 'center' },
-  skipBtn: { padding: 10 },
+  controlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15, // Space between buttons
+  },
+  skipBtn: {
+    padding: 5,
+  },
   miniPlayButton: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#BFA868', justifyContent: 'center',
-    alignItems: 'center', marginHorizontal: 5
+    width: 55,  // Bigger circle
+    height: 55,
+    borderRadius: 27.5, // Perfect circle
+    backgroundColor: '#fee08c', // Gold color
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 5
   },
-  textColumn: { flex: 1, alignItems: 'flex-end', paddingLeft: 10 },
-  miniPlayerLabel: { color: '#888', fontSize: 9, fontWeight: 'bold', letterSpacing: 0.5 },
-  miniPlayerTitle: { color: '#BFA868', fontSize: 18, fontFamily: 'AlMushaf', marginTop: -2 },
-  miniPlayerSub: { color: '#FFF', fontSize: 11, marginTop: -2 }
+  textColumn: {
+    flex: 1,
+    alignItems: 'flex-end', // Align text to the right
+    justifyContent: 'center',
+    marginRight: 10, // 👈 Fixes text stuck at the corner
+  },
+  miniPlayerLabel: {
+    color: '#ffffff',
+    fontSize: 12,
+    letterSpacing: 2,
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    fontFamily: 'Jura'
+  },
+  miniPlayerTitle: {
+    color: '#fee08c',
+    fontFamily: 'AlMushaf', // Arabic Font
+    fontSize: 26,
+    textAlign: 'right',
+  },
+  miniPlayerSub: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'right',
+    fontFamily: 'Cinzel'
+  },
 });

@@ -60,7 +60,7 @@ export default function FavoritesScreen() {
                </Text>
 
                <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemove(item)}>
-                  <Ionicons name="trash-outline" size={16} color="#888" />
+                  <Ionicons name="trash-outline" size={16} color="#333" />
                   <Text style={styles.removeText}>Remove</Text>
                </TouchableOpacity>
             </TouchableOpacity>
@@ -75,14 +75,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FDFBF7' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: '#EEE' },
   backButton: { padding: 5 },
-  headerTitle: { fontSize: 20, fontFamily: 'AlmendraSC', color: '#BFA868' },
+  headerTitle: { fontSize: 20, fontFamily: 'Jura', color: '#333' },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { marginTop: 10, color: '#AAA' },
+  emptyText: { marginTop: 10, color: '#AAA', fontFamily: "Jura" },
   card: { backgroundColor: '#FFF', padding: 20, borderRadius: 15, marginBottom: 15, elevation: 3, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 5 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-  surahName: { fontSize: 16, fontWeight: 'bold', color: '#BFA868' },
-  ayahNum: { fontSize: 14, color: '#888' },
+  surahName: { fontSize: 16, fontWeight: 'bold', color: '#BFA868', fontFamily: 'Cinzel' },
+  ayahNum: { fontSize: 14, color: '#333', fontFamily: 'Jura' },
   arabicText: { fontSize: 24, fontFamily: 'AlMushaf', textAlign: 'right', color: '#333', marginBottom: 15 },
   removeBtn: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', padding: 5 },
-  removeText: { fontSize: 12, color: '#888', marginLeft: 5 },
+  removeText: { fontSize: 12, color: '#333', marginLeft: 5, fontFamily: 'Jura' },
 });

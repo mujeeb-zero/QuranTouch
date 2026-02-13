@@ -3,31 +3,13 @@ import { Audio } from 'expo-av';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { fetchSurah } from '../../api/quranApi';
 
-// 1. Defined Reciters
-// 🆕 UPDATED RECITERS LIST WITH IMAGES
+// --- CONFIGURATION ---
 export const RECITERS = [
-  { 
-    id: 'mishary', 
-    name: 'Mishary Alafasy', 
-    urlPath: 'Alafasy_128kbps',
-    // ⬇️ Use require for local images
-    image: require('../../assets/reciters/mishary.jpg') 
-  },
-  { 
-    id: 'sudais', 
-    name: 'Abdurrahmaan As-Sudais', 
-    urlPath: 'Abdurrahmaan_As-Sudais_192kbps',
-    image: require('../../assets/reciters/sudais.jpg')
-  },
-  { 
-    id: 'basit', 
-    name: 'Abdul Basit', 
-    urlPath: 'Abdul_Basit_Murattal_192kbps',
-    image: require('../../assets/reciters/basit.jpg')
-  },
+  { id: 'mishary', name: 'Mishary Alafasy', urlPath: 'Alafasy_128kbps', image: require('../../assets/reciters/mishary.jpg') },
+  { id: 'sudais', name: 'Abdurrahmaan As-Sudais', urlPath: 'Abdurrahmaan_As-Sudais_192kbps', image: require('../../assets/reciters/sudais.jpg') },
+  { id: 'basit', name: 'Abdul Basit', urlPath: 'Abdul_Basit_Murattal_192kbps', image: require('../../assets/reciters/basit.jpg') },
 ];
 
-// 2. URL Generator
 const getReciterUrl = (reciterPath: string, surahId: number, verseIndex: number) => {
   const s = String(surahId).padStart(3, '0');
   const v = String(verseIndex + 1).padStart(3, '0');
@@ -45,16 +27,17 @@ export const AudioProvider = ({ children }: any) => {
   const [currentAyahId, setCurrentAyahId] = useState<number | null>(null);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(1);
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [themeMode, setThemeMode] = useState<'system' | 'light' | 'dark'>('system');
   const [isLoading, setIsLoading] = useState(false);
   
+  // --- PREFERENCES (Default Values) ---
+  const [favorites, setFavorites] = useState<any[]>([]);
+  const [themeMode, setThemeModeState] = useState<'system' | 'light' | 'dark'>('system');
+  const [fontSize, setFontSizeState] = useState(28);
+  const [showTranslation, setShowTranslationState] = useState(false);
   const [activeReciter, setActiveReciter] = useState(RECITERS[0]);
 
   // --- REFS ---
-  // 🆕 Vital: We use a Ref to track the reciter instantly inside audio callbacks
   const activeReciterRef = useRef(RECITERS[0]); 
-  
   const soundRef = useRef<Audio.Sound | null>(null);
   const nextPreloadedSoundRef = useRef<Audio.Sound | null>(null);
   const prevPreloadedSoundRef = useRef<Audio.Sound | null>(null);
@@ -64,37 +47,87 @@ export const AudioProvider = ({ children }: any) => {
   const isPreloadingNext = useRef(false);
   const isPreloadingPrev = useRef(false);
 
+  // --- 1. LOAD SETTINGS ON START ---
   useEffect(() => {
-    loadFavorites();
-    loadReciter();
-    setupAudioMode();
+    const loadSettings = async () => {
+      try {
+        console.log("📥 Loading settings from storage...");
+        // Using '_v3' keys to ensure a fresh start and avoid old stuck data
+        const keys = ['@favs_v3', '@reciter_v3', '@theme_v3', '@font_v3', '@trans_v3'];
+        const result = await AsyncStorage.multiGet(keys);
 
-    return () => {
-      killAllSounds();
+        // Favorites
+        if (result[0][1]) setFavorites(JSON.parse(result[0][1]));
+
+        // Reciter
+        if (result[1][1]) {
+          const r = JSON.parse(result[1][1]);
+          setActiveReciter(r);
+          activeReciterRef.current = r;
+        }
+
+        // Theme
+        if (result[2][1]) setThemeModeState(result[2][1] as any);
+
+        // Font Size
+        if (result[3][1]) setFontSizeState(parseInt(result[3][1]));
+
+        // Translation
+        if (result[4][1] !== null) {
+          const loadedValue = result[4][1] === 'true';
+          console.log("📥 Loaded Translation:", loadedValue);
+          setShowTranslationState(loadedValue);
+        }
+      } catch (e) { console.log("Error loading settings:", e); }
     };
+
+    loadSettings();
+    setupAudioMode();
+    return () => { killAllSounds(); };
   }, []);
 
-  // 🆕 CHANGING RECITER (Now cleans up old audio)
+  // --- 2. SAVE FUNCTIONS (The "Magic" Part) ---
+  
+  const setThemeMode = async (mode: 'system' | 'light' | 'dark') => {
+    setThemeModeState(mode);
+    await AsyncStorage.setItem('@theme_v3', mode);
+  };
+
+  const setFontSize = async (size: number) => {
+    setFontSizeState(size);
+    await AsyncStorage.setItem('@font_v3', size.toString());
+  };
+
+  const setShowTranslation = async (show: boolean) => {
+    console.log("💾 SAVING TRANSLATION:", show); // Check your terminal for this!
+    setShowTranslationState(show);
+    await AsyncStorage.setItem('@trans_v3', show ? 'true' : 'false');
+  };
+
   const changeReciter = async (reciter: any) => {
     setActiveReciter(reciter);
-    activeReciterRef.current = reciter; // Update Ref immediately
-    await AsyncStorage.setItem('preferred_reciter', JSON.stringify(reciter));
-    
-    // 🛑 CRITICAL: Stop current AND kill preloaded next/prev files
-    // otherwise the "Next" button will play the old voice from memory.
+    activeReciterRef.current = reciter;
+    await AsyncStorage.setItem('@reciter_v3', JSON.stringify(reciter));
     await killAllSounds();
     setIsPlaying(false);
   };
-
-  const loadReciter = async () => {
-    const stored = await AsyncStorage.getItem('preferred_reciter');
-    if (stored) {
-        const parsed = JSON.parse(stored);
-        setActiveReciter(parsed);
-        activeReciterRef.current = parsed;
-    }
+  
+  const toggleFavorite = async (surah: any, verse: any) => {
+    let newFavs = [...favorites];
+    const exists = newFavs.some(f => f.surahId === surah.id && f.verseId === verse.id);
+    if (exists) newFavs = newFavs.filter(f => !(f.surahId === surah.id && f.verseId === verse.id));
+    else newFavs.push({ surahId: surah.id, verseId: verse.id, surahName: surah.nameEn, verseNum: verse.numberInSurah, text: verse.text });
+    
+    setFavorites(newFavs);
+    await AsyncStorage.setItem('@favs_v3', JSON.stringify(newFavs));
   };
 
+  const saveLastRead = async (surahId: number, verseId: number, verseNum: number, nameEn: string, nameAr: string) => {
+    const data = { surahId, verseId, verseNum, nameEn, nameAr, timestamp: Date.now() };
+    await AsyncStorage.setItem('@last_read_v3', JSON.stringify(data));
+  };
+
+  // --- AUDIO LOGIC (Standard) ---
   const setupAudioMode = async () => {
     try {
       await Audio.setAudioModeAsync({
@@ -104,15 +137,9 @@ export const AudioProvider = ({ children }: any) => {
         shouldDuckAndroid: true,
         playThroughEarpieceAndroid: false,
       });
-    } catch (e) { console.log('Audio Mode Error:', e); }
+    } catch (e) {}
   };
 
-  const loadFavorites = async () => {
-    const stored = await AsyncStorage.getItem('favorites');
-    if (stored) setFavorites(JSON.parse(stored));
-  };
-
-  // --- KILLER FUNCTIONS ---
   const killAllSounds = async () => {
       await killCurrentSound();
       await killNextPreloadedSound();
@@ -144,40 +171,34 @@ export const AudioProvider = ({ children }: any) => {
     }
   };
 
-  // --- PRELOAD ---
   const preloadAdjacentAyahs = async (currentIndex: number) => {
     if (!surahRef.current) return;
 
-    // Preload Prev
     const prevIndex = currentIndex - 1;
     if (prevIndex >= 0 && !isPreloadingPrev.current) {
       isPreloadingPrev.current = true;
       try {
         await killPrevPreloadedSound();
-        // 🆕 Use Ref here to get the LATEST reciter
         const audioUrl = getReciterUrl(activeReciterRef.current.urlPath, surahRef.current.id, prevIndex);
         const { sound } = await Audio.Sound.createAsync({ uri: audioUrl }, { shouldPlay: false });
         prevPreloadedSoundRef.current = sound;
-      } catch (error) { console.log("Prev preload error", error); } 
+      } catch (error) {} 
       finally { isPreloadingPrev.current = false; }
     }
 
-    // Preload Next
     const nextIndex = currentIndex + 1;
     if (nextIndex < surahRef.current.verses.length && !isPreloadingNext.current) {
       isPreloadingNext.current = true;
       try {
         await killNextPreloadedSound();
-        // 🆕 Use Ref here too
         const audioUrl = getReciterUrl(activeReciterRef.current.urlPath, surahRef.current.id, nextIndex);
         const { sound } = await Audio.Sound.createAsync({ uri: audioUrl }, { shouldPlay: false });
         nextPreloadedSoundRef.current = sound;
-      } catch (error) { console.log("Next preload error", error); } 
+      } catch (error) {} 
       finally { isPreloadingNext.current = false; }
     }
   };
 
-  // --- PLAYBACK STATUS ---
   const onPlaybackStatusUpdate = async (status: any) => {
     if (!status.isLoaded) return;
     setPosition(status.positionMillis);
@@ -189,7 +210,6 @@ export const AudioProvider = ({ children }: any) => {
       
       if (surahRef.current && nextIndex < surahRef.current.verses.length) {
         if (nextPreloadedSoundRef.current) {
-          // Swap logic
           const nextSound = nextPreloadedSoundRef.current;
           nextPreloadedSoundRef.current = null;
           
@@ -214,18 +234,15 @@ export const AudioProvider = ({ children }: any) => {
     }
   };
 
-  // --- PLAY FUNCTIONS ---
-  const playSurah = async (surahId: number) => {
+  const playSurah = async (surahId: number, startAyahIndex = 0, autoPlay = true) => {
     await killAllSounds();
     setIsLoading(true);
-
     try {
       const data = await fetchSurah(surahId);
       if (!data) return;
-
       surahRef.current = data;
       setCurrentSurah(data);
-      await playAyah(0);
+      await playAyah(startAyahIndex); 
     } catch (e) {
       console.log(e);
     } finally {
@@ -249,7 +266,6 @@ export const AudioProvider = ({ children }: any) => {
       if (soundRef.current) soundRef.current.setOnPlaybackStatusUpdate(null);
       await killCurrentSound();
 
-      // Check preloads to avoid glitches, but ensure we kill if jumping non-sequentially
       if (nextPreloadedSoundRef.current && index !== indexRef.current + 1) await killNextPreloadedSound();
       if (prevPreloadedSoundRef.current && index !== indexRef.current - 1) await killPrevPreloadedSound();
 
@@ -258,23 +274,15 @@ export const AudioProvider = ({ children }: any) => {
       setPosition(0);
       setIsPlaying(true);
 
-      // 🆕 Use Ref for URL generation
       const audioUrl = getReciterUrl(activeReciterRef.current.urlPath, surahRef.current.id, index);
-
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { shouldPlay: true }
-      );
+      const { sound } = await Audio.Sound.createAsync({ uri: audioUrl }, { shouldPlay: true });
 
       soundRef.current = sound;
       sound.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
       preloadAdjacentAyahs(index);
 
-    } catch (error) {
-      console.log("Play Error:", error);
-    } finally {
-      isBusy.current = false;
-    }
+    } catch (error) { console.log("Play Error:", error); } 
+    finally { isBusy.current = false; }
   };
 
   const skipAyah = async (direction: 'next' | 'prev') => {
@@ -283,7 +291,6 @@ export const AudioProvider = ({ children }: any) => {
     if (newIndex < 0 || newIndex >= surahRef.current.verses.length) return;
 
     if (direction === 'next' && nextPreloadedSoundRef.current) {
-        // Fast path for next
          isBusy.current = true;
          try {
             await killCurrentSound();
@@ -307,27 +314,13 @@ export const AudioProvider = ({ children }: any) => {
 
   const togglePlay = async () => { if (soundRef.current) isPlaying ? await soundRef.current.pauseAsync() : await soundRef.current.playAsync(); };
   const seekTo = async (value: number) => { if (soundRef.current) await soundRef.current.setPositionAsync(value); };
-  
-  // --- FAVORITES & LAST READ (Unchanged) ---
-  const toggleFavorite = async (surah: any, verse: any) => {
-    let newFavs = [...favorites];
-    const exists = newFavs.some(f => f.surahId === surah.id && f.verseId === verse.id);
-    if (exists) newFavs = newFavs.filter(f => !(f.surahId === surah.id && f.verseId === verse.id));
-    else newFavs.push({ surahId: surah.id, verseId: verse.id, surahName: surah.nameEn, verseNum: verse.numberInSurah, text: verse.text });
-    setFavorites(newFavs);
-    await AsyncStorage.setItem('favorites', JSON.stringify(newFavs));
-  };
-  
-  const saveLastRead = async (surahId: number, verseId: number, verseNum: number, nameEn: string, nameAr: string) => {
-    const data = { surahId, verseId, verseNum, nameEn, nameAr, timestamp: Date.now() };
-    await AsyncStorage.setItem('last_read', JSON.stringify(data));
-  };
 
   return (
     <AudioContext.Provider
       value={{
-        isPlaying, currentSurah, currentAyahId, position, duration, favorites, themeMode, isLoading,
-        activeReciter, RECITERS, changeReciter,
+        isPlaying, currentSurah, currentAyahId, position, duration, favorites, isLoading,
+        activeReciter, RECITERS, themeMode, fontSize, showTranslation,
+        changeReciter, setThemeMode, setFontSize, setShowTranslation,
         playSurah,
         playAyah: (surah: any, idx: number) => {
           if (surah.id !== surahRef.current?.id) {
@@ -336,7 +329,7 @@ export const AudioProvider = ({ children }: any) => {
           }
           playAyah(idx);
         },
-        togglePlay, skipAyah, seekTo, setThemeMode, toggleFavorite, saveLastRead,
+        togglePlay, skipAyah, seekTo, toggleFavorite, saveLastRead,
       }}>
       {children}
     </AudioContext.Provider>

@@ -1,30 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
-import { useFonts } from 'expo-font';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Image // 🆕 Added Image import
-  ,
-
-
-
-
-
-
-
-
-
-
-
-
-
+  Image,
   Modal,
   Pressable,
-  SafeAreaView,
   StatusBar,
   StyleSheet,
   Text,
@@ -32,11 +16,12 @@ import {
   View,
   useColorScheme
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchSurah } from '../api/quranApi';
 import { useAudio } from './context/AudioContext';
 
-const LIGHT_THEME = { background: '#FDFBF7', text: '#2D2D2D', primary: '#BFA868', highlight: '#FFF9E6', brackets: '#BFA868', controlBg: '#FFF', headerBorder: '#EEE', panelBg: '#FFF', panelBorder: '#BFA868', modalBg: '#FFF' };
-const DARK_THEME = { background: '#1A1A1A', text: '#E0E0E0', primary: '#D4AF37', highlight: '#2A2A2A', brackets: '#D4AF37', controlBg: '#252525', headerBorder: '#333', panelBg: '#252525', panelBorder: '#D4AF37', modalBg: '#252525' };
+const LIGHT_THEME = { background: '#FDFBF7', text: '#2D2D2D', primary: '#BFA868', highlight: '#FFF9E6', brackets: '#847347', controlBg: '#FFF', headerBorder: '#EEE', panelBg: '#FFF', panelBorder: '#BFA868', modalBg: '#FFF', aaBg: '#333' };
+const DARK_THEME = { background: '#1A1A1A', text: '#E0E0E0', primary: '#fee08c', highlight: '#2A2A2A', brackets: '#fee08c', controlBg: '#252525', headerBorder: '#333', panelBg: '#252525', panelBorder: '#fee08c', modalBg: '#252525', aaBg: '#333' };
 
 const AyahItem = React.memo(({
   item,
@@ -96,17 +81,21 @@ const AyahItem = React.memo(({
 export default function PlayerScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { isPlaying, position, currentAyahId, togglePlay, currentSurah, skipAyah, duration, seekTo, themeMode, setThemeMode, playAyah, favorites, toggleFavorite, saveLastRead, activeReciter, changeReciter, RECITERS } = useAudio();
+  const { 
+    isPlaying, position, currentAyahId, togglePlay, currentSurah, skipAyah, duration, seekTo, 
+    playAyah, favorites, activeReciter, changeReciter, RECITERS,
+    themeMode, setThemeMode, fontSize, setFontSize, showTranslation, setShowTranslation, toggleFavorite, saveLastRead 
+  } = useAudio();
 
   const surahId = parseInt(Array.isArray(params.surahId) ? params.surahId[0] : params.surahId) || 1;
-  const [fontsLoaded] = useFonts({ 'AlMushaf': require('../assets/fonts/AlMushaf.ttf'), 'AlmendraSC': require('../assets/fonts/AlmendraSC.ttf') });
+  
 
   const [viewingSurah, setViewingSurah] = useState<any>(null);
   const [isFetching, setIsFetching] = useState(true);
-  const [fontSize, setFontSize] = useState(28);
-  const [showSettings, setShowSettings] = useState(false);
+  
   const [showReciterList, setShowReciterList] = useState(false);
-  const [showTranslation, setShowTranslation] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  
   const [longPressedAyah, setLongPressedAyah] = useState<any>(null);
   const [currentLastRead, setCurrentLastRead] = useState<any>(null);
 
@@ -172,7 +161,7 @@ export default function PlayerScreen() {
     if (nid >= 1 && nid <= 114) router.replace({ pathname: '/player', params: { surahId: nid, autoplay: 'true' } });
   };
 
-  if (!fontsLoaded || isFetching || !viewingSurah) return <View style={styles.center}><ActivityIndicator size="large" color="#BFA868" /></View>;
+  if ( isFetching || !viewingSurah) return <View style={styles.center}><ActivityIndicator size="large" color="#BFA868" /></View>;
 
   return (
     <SafeAreaView style={[styles.mainContainer, { backgroundColor: COLORS.background }]}>
@@ -187,7 +176,7 @@ export default function PlayerScreen() {
         {/* Reciter Image Trigger */}
         <TouchableOpacity
           onPress={() => setShowReciterList(true)}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}
         >
           <Text style={[styles.surahName, { color: COLORS.primary }]}>{viewingSurah.nameAr}</Text>
 
@@ -213,6 +202,8 @@ export default function PlayerScreen() {
         ref={flatListRef}
         data={viewingSurah.verses}
         keyExtractor={(item) => item.id.toString()}
+        extraData={{ showTranslation, fontSize, favorites, currentAyahId, themeMode }}
+        
         removeClippedSubviews={false}
         windowSize={10}
         onScrollToIndexFailed={(info) => {
@@ -233,12 +224,12 @@ export default function PlayerScreen() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
       />
 
-      <View style={[styles.controlBar, { backgroundColor: COLORS.controlBg }]}>
-        <TouchableOpacity onPress={() => goToSurah('next')} disabled={surahId >= 114}><Ionicons name="play-skip-back-outline" size={24} color={COLORS.primary} /></TouchableOpacity>
-        <TouchableOpacity onPress={() => skipAyah('next')}><Ionicons name="play-back" size={30} color={COLORS.primary} /></TouchableOpacity>
-        <TouchableOpacity style={[styles.playBtn, { backgroundColor: COLORS.primary }]} onPress={togglePlay}><Ionicons name={isPlaying ? "pause" : "play"} size={36} color="#FFF" /></TouchableOpacity>
-        <TouchableOpacity onPress={() => skipAyah('prev')}><Ionicons name="play-forward" size={30} color={COLORS.primary} /></TouchableOpacity>
-        <TouchableOpacity onPress={() => goToSurah('prev')} disabled={surahId <= 1}><Ionicons name="play-skip-forward-outline" size={24} color={COLORS.primary} /></TouchableOpacity>
+      <View style={styles.controlBar}>
+        <TouchableOpacity onPress={() => goToSurah('next')} disabled={surahId >= 114}><Ionicons name="play-skip-back-outline" size={24} color='#fee08c' /></TouchableOpacity>
+        <TouchableOpacity onPress={() => skipAyah('next')}><Ionicons name="play-back" size={30} color='#fee08c' /></TouchableOpacity>
+        <TouchableOpacity style={[styles.playBtn, { backgroundColor: '#fee08c' }]} onPress={togglePlay}><Ionicons name={isPlaying ? "pause" : "play"} size={36} color="#333" /></TouchableOpacity>
+        <TouchableOpacity onPress={() => skipAyah('prev')}><Ionicons name="play-forward" size={30} color='#fee08c' /></TouchableOpacity>
+        <TouchableOpacity onPress={() => goToSurah('prev')} disabled={surahId <= 1}><Ionicons name="play-skip-forward-outline" size={24} color='#fee08c' /></TouchableOpacity>
       </View>
 
       {/* Settings Modal */}
@@ -260,7 +251,7 @@ export default function PlayerScreen() {
       <Modal visible={showReciterList} transparent animationType="fade" onRequestClose={() => setShowReciterList(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowReciterList(false)}>
           <View style={[styles.settingsPanel, { backgroundColor: COLORS.panelBg, borderColor: COLORS.panelBorder, maxHeight: '60%' }]}>
-            <Text style={{ textAlign: 'center', fontFamily: 'AlmendraSC', fontSize: 30, color: '#847347', marginBottom: 15 }}>
+            <Text style={{ textAlign: 'center', fontFamily: 'Cinzel', fontSize: 30, color: COLORS.primary, marginBottom: 15 }}>
               Reciters
             </Text>
             <FlatList
@@ -296,6 +287,7 @@ export default function PlayerScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={{
                       fontSize: 18,
+                      fontFamily: 'Cinzel',
                       color: activeReciter.id === item.id ? COLORS.primary : COLORS.text,
                       fontWeight: activeReciter.id === item.id ? 'bold' : 'normal'
                     }}>
@@ -316,7 +308,23 @@ export default function PlayerScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setLongPressedAyah(null)}>
           <View style={[styles.modalContent, { backgroundColor: COLORS.modalBg, borderColor: COLORS.panelBorder }]}>
             <TouchableOpacity style={styles.modalOption} onPress={() => handleOptionSelect('bookmark')}><Ionicons name="book-outline" size={20} color={COLORS.primary} /><Text style={[styles.modalText, { color: COLORS.text }]}>Set as Last Read</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.modalOption} onPress={() => handleOptionSelect('favorite')}><Ionicons name="star-outline" size={20} color={COLORS.primary} /><Text style={[styles.modalText, { color: COLORS.text }]}>Add to Favorites</Text></TouchableOpacity>
+            <TouchableOpacity 
+  style={styles.modalOption} 
+  onPress={() => handleOptionSelect('favorite')}
+>
+  {/* Check if the long-pressed ayah is already in favorites */}
+  {favorites.some((f: any) => f.surahId === viewingSurah.id && f.verseId === longPressedAyah?.id) ? (
+    <>
+      <Ionicons name="star" size={20} color={COLORS.primary} />
+      <Text style={[styles.modalText, { color: COLORS.text }]}>Remove from Favorites</Text>
+    </>
+  ) : (
+    <>
+      <Ionicons name="star-outline" size={20} color={COLORS.primary} />
+      <Text style={[styles.modalText, { color: COLORS.text }]}>Add to Favorites</Text>
+    </>
+  )}
+</TouchableOpacity>
           </View>
         </Pressable>
       </Modal>
@@ -328,19 +336,35 @@ const styles = StyleSheet.create({
   mainContainer: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1 },
-  aaButton: { padding: 6, borderWidth: 1, borderRadius: 8, borderColor: '#EEE', width: 40, alignItems: 'center' },
-  surahName: { fontFamily: 'AlMushaf', fontSize: 24 },
+  aaButton: { padding: 6, borderWidth: 1, borderRadius: 8, borderColor: '#847347', width: 50, alignItems: 'center' },
+  surahName: { fontFamily: 'AlMushaf', fontSize: 30, color: "#847347" },
   ayahContainer: { paddingVertical: 20, marginVertical: 2 },
   arabicText: { textAlign: 'center' },
-  translationText: { textAlign: 'center', marginTop: 10, paddingHorizontal: 20, lineHeight: 22 },
+  translationText: { textAlign: 'center', marginTop: 10, paddingHorizontal: 20, lineHeight: 22, fontFamily: 'Jura' },
   timelineWrapper: { height: 40, width: '90%', alignSelf: 'center', marginTop: 10 },
-  controlBar: { position: 'absolute', bottom: 30, left: 15, right: 15, height: 80, borderRadius: 40, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', elevation: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
-  playBtn: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center' },
+  controlBar: { 
+    position: 'absolute', 
+    bottom: 30, 
+    left: 20, 
+    right: 20, 
+    height: 80, 
+    borderRadius: 40, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-around', 
+    elevation: 10, 
+    backgroundColor: '#333',
+    shadowColor: '#000', 
+    shadowOpacity: 0.4, 
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }
+  },
+  playBtn: { width: 55, height: 55, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5, backgroundColor: '#BFA868' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   settingsPanel: { width: '85%', padding: 25, borderRadius: 15, borderWidth: 1 },
-  themeBtn: { padding: 8, borderRadius: 6, borderWidth: 1 },
-  transBtn: { padding: 12, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  themeBtn: { padding: 8, borderRadius: 6, borderWidth: 1, fontFamily: 'Jura' },
+  transBtn: { padding: 12, borderRadius: 8, borderWidth: 1, alignItems: 'center', fontFamily: 'Jura' },
   modalContent: { width: '60%', borderRadius: 12, padding: 10, borderWidth: 1 },
   modalOption: { flexDirection: 'row', alignItems: 'center', padding: 15 },
-  modalText: { marginLeft: 15, fontSize: 16 }
+  modalText: { marginLeft: 15, fontSize: 16, fontFamily: 'Jura' }
 });
