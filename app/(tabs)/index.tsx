@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAudio } from '../context/AudioContext';
 import { staticSurahList } from '../data/surahList';
 
+
+
 export default function HomeScreen() {
   const router = useRouter();
   const [filteredSurahs, setFilteredSurahs] = useState(staticSurahList);
@@ -86,6 +88,10 @@ export default function HomeScreen() {
         {/* Header Section */}
 <View style={styles.brandingContainer}>
   <Text style={styles.brandingTitle}>The Noble Quran</Text>
+
+  <TouchableOpacity onPress={() => router.push('/credits')}>
+          <Ionicons name="information-circle-outline" size={28} color="#000" />
+        </TouchableOpacity>
   
 </View>
 
@@ -196,7 +202,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FDFBF7' },
   fixedHeader: { paddingHorizontal: 20, paddingTop: 10, backgroundColor: '#FDFBF7' },
-  brandingContainer: { alignItems: 'center', marginBottom: 15 },
+  brandingContainer: { alignItems: 'center', marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 20, paddingHorizontal: 25,},
   brandingTitle: { fontSize: 25, fontWeight: 'bold', color: '#847347', fontFamily: 'Cinzel' },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 25, paddingHorizontal: 15, paddingVertical: 12, borderWidth: 1, borderColor: '#fee08c' },
   searchInput: { flex: 1, fontSize: 16, textAlign: 'left', color: '#333', marginRight: 10, fontFamily: 'Jura' },
@@ -211,6 +217,8 @@ const styles = StyleSheet.create({
   surahSubtitle: { fontSize: 12, color: '#333', fontFamily: 'BrunoAceSC' },
   versesText: { fontSize: 10, color: '#333', marginTop: 2, fontFamily: 'Jura' },
   arabicName: { fontSize: 26, fontFamily: 'AlMushaf' },
+  
+  
 
   // MINI PLAYER
   miniPlayerContainer: {
