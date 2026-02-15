@@ -1,4 +1,7 @@
 // app/data/surahList.ts
+
+
+
 export const staticSurahList = [
   { "number": 1, "name": "سُورَةُ ٱلْفَاتِحَةِ", "englishName": "Al-Fatiha", "englishNameTranslation": "The Opening", "numberOfAyahs": 7 },
   { "number": 2, "name": "سُورَةُ ٱلْبَقَرَةِ", "englishName": "Al-Baqarah", "englishNameTranslation": "The Cow", "numberOfAyahs": 286 },

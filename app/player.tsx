@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -218,7 +219,10 @@ export default function PlayerScreen() {
             isLastRead={currentLastRead?.surahId === viewingSurah.id && currentLastRead?.verseId === item.id}
             fontSize={fontSize} theme={COLORS} showTranslation={showTranslation}
             onPress={(idx: number) => playAyah(viewingSurah, idx)}
-            onLongPress={setLongPressedAyah} duration={duration} position={position} seekTo={seekTo}
+            onLongPress={(ayahData) => {
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // 👈 The Vibration Tick
+  setLongPressedAyah(ayahData); // 👈 Your original popup function
+}}
           />
         )}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
