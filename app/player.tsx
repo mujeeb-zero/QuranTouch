@@ -25,21 +25,9 @@ const LIGHT_THEME = { background: '#FDFBF7', text: '#2D2D2D', primary: '#BFA868'
 const DARK_THEME = { background: '#1A1A1A', text: '#E0E0E0', primary: '#fee08c', highlight: '#2A2A2A', brackets: '#fee08c', controlBg: '#252525', headerBorder: '#333', panelBg: '#252525', panelBorder: '#fee08c', modalBg: '#252525', aaBg: '#333' };
 
 const AyahItem = React.memo(({
-  item,
-  index,
-  isActive,
-  isFav,
-  isLastRead,
-  fontSize,
-  theme,
-  showTranslation,
-  onPress,
-  onLongPress,
-  duration,
-  position,
-  seekTo
+  item, index, isActive, isFav, isLastRead, fontSize, theme, showTranslation,
+  onPress, onLongPress, duration, position, seekTo
 }: any) => {
-
   return (
     <View style={[styles.ayahContainer, { backgroundColor: isActive ? theme.highlight : 'transparent' }]}>
       <Pressable onPress={() => onPress(index)} onLongPress={() => onLongPress(item)} delayLongPress={300}>
@@ -53,6 +41,8 @@ const AyahItem = React.memo(({
           <Text style={[styles.translationText, { color: theme.text, fontSize: fontSize * 0.55, opacity: 0.7 }]}>{item.translation}</Text>
         )}
       </Pressable>
+
+      {/* Slider Section */}
       {isActive && (
         <View key={item.id} style={[styles.timelineWrapper, { transform: [{ scaleX: -1 }] }]}>
           <Slider
@@ -69,34 +59,26 @@ const AyahItem = React.memo(({
       )}
     </View>
   );
-}, (prev, next) =>
-  prev.isActive === next.isActive &&
-  prev.isFav === next.isFav &&
-  prev.isLastRead === next.isLastRead &&
-  prev.position === next.position &&
-  prev.fontSize === next.fontSize &&
-  prev.showTranslation === next.showTranslation &&
-  prev.theme === next.theme
-);
+});
 
 export default function PlayerScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { 
-    isPlaying, position, currentAyahId, togglePlay, currentSurah, skipAyah, duration, seekTo, 
+  const {
+    isPlaying, position, currentAyahId, togglePlay, currentSurah, skipAyah, duration, seekTo,
     playAyah, favorites, activeReciter, changeReciter, RECITERS,
-    themeMode, setThemeMode, fontSize, setFontSize, showTranslation, setShowTranslation, toggleFavorite, saveLastRead 
+    themeMode, setThemeMode, fontSize, setFontSize, showTranslation, setShowTranslation, toggleFavorite, saveLastRead
   } = useAudio();
 
   const surahId = parseInt(Array.isArray(params.surahId) ? params.surahId[0] : params.surahId) || 1;
-  
+
 
   const [viewingSurah, setViewingSurah] = useState<any>(null);
   const [isFetching, setIsFetching] = useState(true);
-  
+
   const [showReciterList, setShowReciterList] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  
+
   const [longPressedAyah, setLongPressedAyah] = useState<any>(null);
   const [currentLastRead, setCurrentLastRead] = useState<any>(null);
 
@@ -110,7 +92,10 @@ export default function PlayerScreen() {
     const loadData = async () => {
       setIsFetching(true);
       const data = await fetchSurah(surahId);
-      const saved = await AsyncStorage.getItem('last_read');
+      
+      // 👇 FIXED: Changed 'lastread' to 'last_read' to match your save function
+      const saved = await AsyncStorage.getItem('last_read'); 
+      
       if (isMounted && data) {
         setViewingSurah(data);
         if (saved) setCurrentLastRead(JSON.parse(saved));
@@ -120,6 +105,7 @@ export default function PlayerScreen() {
     loadData();
     return () => { isMounted = false; };
   }, [surahId]);
+
 
   useEffect(() => {
     if (!isFetching && viewingSurah && viewingSurah.id === surahId) {
@@ -144,13 +130,26 @@ export default function PlayerScreen() {
       const index = viewingSurah.verses.findIndex((v: any) => v.id === currentAyahId);
       if (index !== -1) flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
     }
-  }, [currentAyahId]);
+  }, [currentAyahId, viewingSurah]);
+
 
   const handleOptionSelect = async (action: 'bookmark' | 'favorite') => {
     if (!longPressedAyah || !viewingSurah) return;
+
     if (action === 'bookmark') {
-      await saveLastRead(viewingSurah.id, longPressedAyah.id, longPressedAyah.numberInSurah, viewingSurah.nameEn, viewingSurah.nameAr);
-      setCurrentLastRead({ surahId: viewingSurah.id, verseId: longPressedAyah.id });
+      const lastReadData = {
+        surahId: viewingSurah.id,
+        verseId: longPressedAyah.id,
+        verseNum: longPressedAyah.numberInSurah,
+        nameEn: viewingSurah.englishName,
+        nameAr: viewingSurah.nameAr 
+      };
+
+      // You are saving it here as 'last_read'
+      await AsyncStorage.setItem('last_read', JSON.stringify(lastReadData));
+
+      setCurrentLastRead(lastReadData);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       toggleFavorite(viewingSurah, longPressedAyah);
     }
@@ -162,35 +161,25 @@ export default function PlayerScreen() {
     if (nid >= 1 && nid <= 114) router.replace({ pathname: '/player', params: { surahId: nid, autoplay: 'true' } });
   };
 
-  if ( isFetching || !viewingSurah) return <View style={styles.center}><ActivityIndicator size="large" color="#BFA868" /></View>;
+  if (isFetching || !viewingSurah) return <View style={styles.center}><ActivityIndicator size="large" color="#BFA868" /></View>;
 
   return (
     <SafeAreaView style={[styles.mainContainer, { backgroundColor: COLORS.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
-      {/* 🆕 UPDATED HEADER */}
       <View style={[styles.header, { borderBottomColor: COLORS.headerBorder }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={40} color={COLORS.primary} />
         </TouchableOpacity>
 
-        {/* Reciter Image Trigger */}
         <TouchableOpacity
           onPress={() => setShowReciterList(true)}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}
         >
           <Text style={[styles.surahName, { color: COLORS.primary }]}>{viewingSurah.nameAr}</Text>
-
-          {/* 🆕 CIRCULAR IMAGE */}
           <Image
-            source={activeReciter.image}  // 👈 CHANGED: Removed { uri: ... }
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-              borderWidth: 1.5,
-              borderColor: COLORS.primary
-            }}
+            source={activeReciter.image}
+            style={{ width: 50, height: 50, borderRadius: 25, borderWidth: 1.5, borderColor: COLORS.primary }}
           />
         </TouchableOpacity>
 
@@ -203,8 +192,8 @@ export default function PlayerScreen() {
         ref={flatListRef}
         data={viewingSurah.verses}
         keyExtractor={(item) => item.id.toString()}
-        extraData={{ showTranslation, fontSize, favorites, currentAyahId, themeMode }}
-        
+        extraData={[currentLastRead, currentAyahId, favorites, themeMode, position]}
+
         removeClippedSubviews={false}
         windowSize={10}
         onScrollToIndexFailed={(info) => {
@@ -215,14 +204,28 @@ export default function PlayerScreen() {
             item={item}
             index={index}
             isActive={currentSurah?.id === viewingSurah.id && currentAyahId === item.id}
+            
+            // 👇 ROBUST CHECK (Ensures icon shows up)
+            isLastRead={
+              currentLastRead && 
+              String(currentLastRead.surahId) === String(viewingSurah.id) && 
+              (
+                 String(currentLastRead.verseNum) === String(item.numberInSurah) ||
+                 String(currentLastRead.verseId) === String(item.id) ||
+                 String(currentLastRead.ayah) === String(item.numberInSurah)
+              )
+            }
+
             isFav={favorites?.some((f: any) => f.surahId === viewingSurah.id && f.verseId === item.id)}
-            isLastRead={currentLastRead?.surahId === viewingSurah.id && currentLastRead?.verseId === item.id}
             fontSize={fontSize} theme={COLORS} showTranslation={showTranslation}
             onPress={(idx: number) => playAyah(viewingSurah, idx)}
+            
             onLongPress={(ayahData) => {
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); // 👈 The Vibration Tick
-  setLongPressedAyah(ayahData); // 👈 Your original popup function
-}}
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setLongPressedAyah(ayahData);
+            }}
+            
+            duration={duration} position={position} seekTo={seekTo}
           />
         )}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 150 }}
@@ -231,12 +234,20 @@ export default function PlayerScreen() {
       <View style={styles.controlBar}>
         <TouchableOpacity onPress={() => goToSurah('next')} disabled={surahId >= 114}><Ionicons name="play-skip-back-outline" size={24} color='#fee08c' /></TouchableOpacity>
         <TouchableOpacity onPress={() => skipAyah('next')}><Ionicons name="play-back" size={30} color='#fee08c' /></TouchableOpacity>
-        <TouchableOpacity style={[styles.playBtn, { backgroundColor: '#fee08c' }]} onPress={togglePlay}><Ionicons name={isPlaying ? "pause" : "play"} size={36} color="#333" /></TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.playBtn, { backgroundColor: '#fee08c' }]}
+          onPress={() => {
+            if (!currentAyahId && viewingSurah) {
+              playAyah(viewingSurah, 0);
+            } else {
+              togglePlay();
+            }
+          }}
+        ><Ionicons name={isPlaying ? "pause" : "play"} size={36} color="#333" /></TouchableOpacity>
         <TouchableOpacity onPress={() => skipAyah('prev')}><Ionicons name="play-forward" size={30} color='#fee08c' /></TouchableOpacity>
         <TouchableOpacity onPress={() => goToSurah('prev')} disabled={surahId <= 1}><Ionicons name="play-skip-forward-outline" size={24} color='#fee08c' /></TouchableOpacity>
       </View>
 
-      {/* Settings Modal */}
       <Modal visible={showSettings} transparent animationType="fade" onRequestClose={() => setShowSettings(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowSettings(false)}>
           <View style={[styles.settingsPanel, { backgroundColor: COLORS.panelBg, borderColor: COLORS.panelBorder }]}>
@@ -251,7 +262,6 @@ export default function PlayerScreen() {
         </Pressable>
       </Modal>
 
-      {/* 🆕 UPDATED RECITER MODAL WITH IMAGES */}
       <Modal visible={showReciterList} transparent animationType="fade" onRequestClose={() => setShowReciterList(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowReciterList(false)}>
           <View style={[styles.settingsPanel, { backgroundColor: COLORS.panelBg, borderColor: COLORS.panelBorder, maxHeight: '60%' }]}>
@@ -275,30 +285,13 @@ export default function PlayerScreen() {
                     setShowReciterList(false);
                   }}
                 >
-                  {/* List Image */}
                   <Image
-                    source={item.image}  // 👈 CHANGED: Removed { uri: ... }
-                    style={{
-                      width: 50,
-                      height: 50,
-                      borderRadius: 25,
-                      marginRight: 15,
-                      borderWidth: 1,
-                      borderColor: '#DDD'
-                    }}
+                    source={item.image} 
+                    style={{ width: 50, height: 50, borderRadius: 25, marginRight: 15, borderWidth: 1, borderColor: '#DDD' }}
                   />
-
                   <View style={{ flex: 1 }}>
-                    <Text style={{
-                      fontSize: 18,
-                      fontFamily: 'Cinzel',
-                      color: activeReciter.id === item.id ? COLORS.primary : COLORS.text,
-                      fontWeight: activeReciter.id === item.id ? 'bold' : 'normal'
-                    }}>
-                      {item.name}
-                    </Text>
+                    <Text style={{ fontSize: 18, fontFamily: 'Cinzel', color: activeReciter.id === item.id ? COLORS.primary : COLORS.text, fontWeight: activeReciter.id === item.id ? 'bold' : 'normal' }}>{item.name}</Text>
                   </View>
-
                   {activeReciter.id === item.id && <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />}
                 </TouchableOpacity>
               )}
@@ -307,28 +300,17 @@ export default function PlayerScreen() {
         </Pressable>
       </Modal>
 
-      {/* Action Modal */}
       <Modal visible={!!longPressedAyah} transparent animationType="fade" onRequestClose={() => setLongPressedAyah(null)}>
         <Pressable style={styles.modalOverlay} onPress={() => setLongPressedAyah(null)}>
           <View style={[styles.modalContent, { backgroundColor: COLORS.modalBg, borderColor: COLORS.panelBorder }]}>
             <TouchableOpacity style={styles.modalOption} onPress={() => handleOptionSelect('bookmark')}><Ionicons name="book-outline" size={20} color={COLORS.primary} /><Text style={[styles.modalText, { color: COLORS.text }]}>Set as Last Read</Text></TouchableOpacity>
-            <TouchableOpacity 
-  style={styles.modalOption} 
-  onPress={() => handleOptionSelect('favorite')}
->
-  {/* Check if the long-pressed ayah is already in favorites */}
-  {favorites.some((f: any) => f.surahId === viewingSurah.id && f.verseId === longPressedAyah?.id) ? (
-    <>
-      <Ionicons name="star" size={20} color={COLORS.primary} />
-      <Text style={[styles.modalText, { color: COLORS.text }]}>Remove from Favorites</Text>
-    </>
-  ) : (
-    <>
-      <Ionicons name="star-outline" size={20} color={COLORS.primary} />
-      <Text style={[styles.modalText, { color: COLORS.text }]}>Add to Favorites</Text>
-    </>
-  )}
-</TouchableOpacity>
+            <TouchableOpacity style={styles.modalOption} onPress={() => handleOptionSelect('favorite')}>
+              {favorites.some((f: any) => f.surahId === viewingSurah.id && f.verseId === longPressedAyah?.id) ? (
+                <><Ionicons name="star" size={20} color={COLORS.primary} /><Text style={[styles.modalText, { color: COLORS.text }]}>Remove from Favorites</Text></>
+              ) : (
+                <><Ionicons name="star-outline" size={20} color={COLORS.primary} /><Text style={[styles.modalText, { color: COLORS.text }]}>Add to Favorites</Text></>
+              )}
+            </TouchableOpacity>
           </View>
         </Pressable>
       </Modal>
@@ -346,20 +328,20 @@ const styles = StyleSheet.create({
   arabicText: { textAlign: 'center' },
   translationText: { textAlign: 'center', marginTop: 10, paddingHorizontal: 20, lineHeight: 22, fontFamily: 'Jura' },
   timelineWrapper: { height: 40, width: '90%', alignSelf: 'center', marginTop: 10 },
-  controlBar: { 
-    position: 'absolute', 
-    bottom: 30, 
-    left: 20, 
-    right: 20, 
-    height: 80, 
-    borderRadius: 40, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-around', 
-    elevation: 10, 
+  controlBar: {
+    position: 'absolute',
+    bottom: 30,
+    left: 20,
+    right: 20,
+    height: 80,
+    borderRadius: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    elevation: 10,
     backgroundColor: '#333',
-    shadowColor: '#000', 
-    shadowOpacity: 0.4, 
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 }
   },

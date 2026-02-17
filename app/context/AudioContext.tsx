@@ -29,7 +29,7 @@ export const AudioProvider = ({ children }: any) => {
   const [duration, setDuration] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   
-  // --- PREFERENCES (Default Values) ---
+  // --- PREFERENCES ---
   const [favorites, setFavorites] = useState<any[]>([]);
   const [themeMode, setThemeModeState] = useState<'system' | 'light' | 'dark'>('system');
   const [fontSize, setFontSizeState] = useState(28);
@@ -47,87 +47,71 @@ export const AudioProvider = ({ children }: any) => {
   const isPreloadingNext = useRef(false);
   const isPreloadingPrev = useRef(false);
 
-  // --- 1. LOAD SETTINGS ON START ---
+  // --- 1. LOAD SETTINGS ---
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        console.log("📥 Loading settings from storage...");
-        // Using '_v3' keys to ensure a fresh start and avoid old stuck data
-        const keys = ['@favs_v3', '@reciter_v3', '@theme_v3', '@font_v3', '@trans_v3'];
+        const keys = ['favorites', 'activeReciter', 'themeMode', 'fontSize', 'showTranslation'];
         const result = await AsyncStorage.multiGet(keys);
 
-        // Favorites
         if (result[0][1]) setFavorites(JSON.parse(result[0][1]));
-
-        // Reciter
         if (result[1][1]) {
           const r = JSON.parse(result[1][1]);
           setActiveReciter(r);
           activeReciterRef.current = r;
         }
-
-        // Theme
         if (result[2][1]) setThemeModeState(result[2][1] as any);
-
-        // Font Size
         if (result[3][1]) setFontSizeState(parseInt(result[3][1]));
-
-        // Translation
-        if (result[4][1] !== null) {
-          const loadedValue = result[4][1] === 'true';
-          console.log("📥 Loaded Translation:", loadedValue);
-          setShowTranslationState(loadedValue);
-        }
+        if (result[4][1] !== null) setShowTranslationState(result[4][1] === 'true');
       } catch (e) { console.log("Error loading settings:", e); }
     };
-
     loadSettings();
     setupAudioMode();
     return () => { killAllSounds(); };
   }, []);
 
-  // --- 2. SAVE FUNCTIONS (The "Magic" Part) ---
-  
+  // --- 2. SAVE FUNCTIONS ---
   const setThemeMode = async (mode: 'system' | 'light' | 'dark') => {
     setThemeModeState(mode);
-    await AsyncStorage.setItem('@theme_v3', mode);
+    await AsyncStorage.setItem('themeMode', mode);
   };
 
   const setFontSize = async (size: number) => {
     setFontSizeState(size);
-    await AsyncStorage.setItem('@font_v3', size.toString());
+    await AsyncStorage.setItem('fontSize', size.toString());
   };
 
   const setShowTranslation = async (show: boolean) => {
-    console.log("💾 SAVING TRANSLATION:", show); // Check your terminal for this!
     setShowTranslationState(show);
-    await AsyncStorage.setItem('@trans_v3', show ? 'true' : 'false');
+    await AsyncStorage.setItem('showTranslation', show ? 'true' : 'false');
   };
 
   const changeReciter = async (reciter: any) => {
     setActiveReciter(reciter);
     activeReciterRef.current = reciter;
-    await AsyncStorage.setItem('@reciter_v3', JSON.stringify(reciter));
+    await AsyncStorage.setItem('activeReciter', JSON.stringify(reciter));
     await killAllSounds();
     setIsPlaying(false);
   };
   
   const toggleFavorite = async (surah: any, verse: any) => {
+    if (!surah?.id || !verse?.id) return;
     let newFavs = [...favorites];
     const exists = newFavs.some(f => f.surahId === surah.id && f.verseId === verse.id);
+
     if (exists) newFavs = newFavs.filter(f => !(f.surahId === surah.id && f.verseId === verse.id));
-    else newFavs.push({ surahId: surah.id, verseId: verse.id, surahName: surah.nameEn, verseNum: verse.numberInSurah, text: verse.text });
+    else newFavs.push({ surahId: surah.id, verseId: verse.id, surahName: surah.nameEn || surah.englishName, nameAr: surah.nameAr || surah.name, verseNum: verse.numberInSurah, text: verse.text });
     
     setFavorites(newFavs);
-    await AsyncStorage.setItem('@favs_v3', JSON.stringify(newFavs));
+    await AsyncStorage.setItem('favorites', JSON.stringify(newFavs));
   };
 
   const saveLastRead = async (surahId: number, verseId: number, verseNum: number, nameEn: string, nameAr: string) => {
     const data = { surahId, verseId, verseNum, nameEn, nameAr, timestamp: Date.now() };
-    await AsyncStorage.setItem('@last_read_v3', JSON.stringify(data));
+    await AsyncStorage.setItem('last_read', JSON.stringify(data));
   };
 
-  // --- AUDIO LOGIC (Standard) ---
+  // --- AUDIO LOGIC ---
   const setupAudioMode = async () => {
     try {
       await Audio.setAudioModeAsync({
@@ -208,6 +192,7 @@ export const AudioProvider = ({ children }: any) => {
     if (status.didJustFinish) {
       const nextIndex = indexRef.current + 1;
       
+      // 1. CHECK IF THERE IS A NEXT AYAH IN THIS SURAH
       if (surahRef.current && nextIndex < surahRef.current.verses.length) {
         if (nextPreloadedSoundRef.current) {
           const nextSound = nextPreloadedSoundRef.current;
@@ -228,8 +213,18 @@ export const AudioProvider = ({ children }: any) => {
           await playAyah(nextIndex);
         }
       } else {
+        // 2. 👇 FIX: END OF SURAH DETECTED
+        // If we are here, we finished the last Ayah.
         setIsPlaying(false);
         setPosition(0);
+
+        if (surahRef.current && surahRef.current.id < 114) {
+           console.log("Auto-playing next Surah...");
+           // Wait a tiny bit for UI to settle, then play next Surah
+           setTimeout(() => {
+             playSurah(surahRef.current.id + 1, 0, true);
+           }, 500);
+        }
       }
     }
   };
@@ -242,7 +237,10 @@ export const AudioProvider = ({ children }: any) => {
       if (!data) return;
       surahRef.current = data;
       setCurrentSurah(data);
-      await playAyah(startAyahIndex); 
+      // Wait for state to update before playing
+      setTimeout(() => {
+          playAyah(startAyahIndex); 
+      }, 100);
     } catch (e) {
       console.log(e);
     } finally {
@@ -253,9 +251,16 @@ export const AudioProvider = ({ children }: any) => {
   const playAyah = async (index: number) => {
     if (!surahRef.current || !surahRef.current.verses[index]) return;
 
+    // 👇 FIX: REPLAY LOGIC
     if (index === indexRef.current && soundRef.current) {
-      if (isPlaying) await soundRef.current.setPositionAsync(0);
-      else await soundRef.current.playAsync();
+      if (isPlaying) {
+         // If playing, restart ayah
+         await soundRef.current.setPositionAsync(0);
+      } else {
+         // If paused or finished, REWIND then Play (Fixes the "Last Ayah" bug)
+         await soundRef.current.setPositionAsync(0); 
+         await soundRef.current.playAsync();
+      }
       return;
     }
 

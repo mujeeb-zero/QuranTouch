@@ -20,7 +20,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const initializeSync = async () => {
       // 1. ADD THIS LINE:
-      await AsyncStorage.clear();
+     
 
       // 2. RUN THE APP ONCE
       // 3. DELETE THE LINE ABOVE AFTER THE APP LOADS
