@@ -87,6 +87,14 @@ export default function PlayerScreen() {
   const isDarkMode = themeMode === 'system' ? systemScheme === 'dark' : themeMode === 'dark';
   const COLORS = isDarkMode ? DARK_THEME : LIGHT_THEME;
 
+  // 👇 PASTE THE NEW CODE HERE 👇
+  useEffect(() => {
+    if (currentSurah && viewingSurah && currentSurah.id !== viewingSurah.id) {
+      setViewingSurah(currentSurah);
+    }
+  }, [currentSurah]);
+  // 👆 END OF NEW CODE 👆
+
   useEffect(() => {
     let isMounted = true;
     const loadData = async () => {
