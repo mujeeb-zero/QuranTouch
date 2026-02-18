@@ -362,3 +362,5 @@ const styles = StyleSheet.create({
   modalOption: { flexDirection: 'row', alignItems: 'center', padding: 15 },
   modalText: { marginLeft: 15, fontSize: 16, fontFamily: 'Jura' }
 });
+
+// Saved on 18 Feb Wed from my office 
