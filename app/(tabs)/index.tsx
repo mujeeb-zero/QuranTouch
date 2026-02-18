@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAudio } from '../context/AudioContext';
@@ -20,7 +20,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const initializeSync = async () => {
       // 1. ADD THIS LINE:
-     
+
 
       // 2. RUN THE APP ONCE
       // 3. DELETE THE LINE ABOVE AFTER THE APP LOADS
@@ -86,14 +86,14 @@ export default function HomeScreen() {
 
       <View style={styles.fixedHeader}>
         {/* Header Section */}
-<View style={styles.brandingContainer}>
-  <Text style={styles.brandingTitle}>The Noble Quran</Text>
+        <View style={styles.brandingContainer}>
+          <Text style={styles.brandingTitle}>The Noble Quran</Text>
 
-  <TouchableOpacity onPress={() => router.push('/credits')}>
-          <Ionicons name="information-circle-outline" size={28} color="#000" />
-        </TouchableOpacity>
-  
-</View>
+          <TouchableOpacity onPress={() => router.push('/credits')}>
+            <Ionicons name="information-circle-outline" size={28} color="#000" />
+          </TouchableOpacity>
+
+        </View>
 
         {/* 🔥 UPDATED SEARCH BAR */}
         <View style={styles.searchContainer}>
@@ -147,19 +147,19 @@ export default function HomeScreen() {
             >
               <View style={styles.numberCircle}><Text style={styles.numberText}>{item.number}</Text></View>
               <View style={{ flex: 1, marginLeft: 15, justifyContent: 'center' }}>
-  {/* Top: Surah Name */}
-  <Text style={styles.surahTitle}>{item.englishName}</Text>
+                {/* Top: Surah Name */}
+                <Text style={styles.surahTitle}>{item.englishName}</Text>
 
-  {/* Middle: Translation (BrunoAceSC Font) */}
-  <Text style={styles.surahSubtitle}>
-    {item.englishNameTranslation}
-  </Text>
+                {/* Middle: Translation (BrunoAceSC Font) */}
+                <Text style={styles.surahSubtitle}>
+                  {item.englishNameTranslation}
+                </Text>
 
-  {/* Bottom: Verse Count (Smaller & Different Color) */}
-  <Text style={styles.versesText}>
-    {item.numberOfAyahs} Verses
-  </Text>
-</View>
+                {/* Bottom: Verse Count (Smaller & Different Color) */}
+                <Text style={styles.versesText}>
+                  {item.numberOfAyahs} Verses
+                </Text>
+              </View>
               <Text style={styles.arabicName}>{item.name}</Text>
             </TouchableOpacity>
           )}
@@ -202,7 +202,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FDFBF7' },
   fixedHeader: { paddingHorizontal: 20, paddingTop: 10, backgroundColor: '#FDFBF7' },
-  brandingContainer: { alignItems: 'center', marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 20, paddingHorizontal: 25,},
+  brandingContainer: { alignItems: 'center', marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 20, paddingHorizontal: 25, },
   brandingTitle: { fontSize: 25, fontWeight: 'bold', color: '#847347', fontFamily: 'Cinzel' },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 25, paddingHorizontal: 15, paddingVertical: 12, borderWidth: 1, borderColor: '#fee08c' },
   searchInput: { flex: 1, fontSize: 16, textAlign: 'left', color: '#333', marginRight: 10, fontFamily: 'Jura' },
@@ -211,14 +211,14 @@ const styles = StyleSheet.create({
   cardMainText: { color: '#fee08c', fontSize: 16, marginTop: 10, fontFamily: 'Cinzel' },
   cardSubText: { color: '#CCC', fontSize: 15, marginTop: 5, fontFamily: 'Jura' },
   surahCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#EEE' },
-  numberCircle: {width: 43, height: 43, borderRadius: 19, borderWidth: 1, borderColor: '#333', justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
+  numberCircle: { width: 43, height: 43, borderRadius: 19, borderWidth: 1, borderColor: '#333', justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
   numberText: { color: '#333', fontSize: 19, fontFamily: 'AlmendraSC', textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false, lineHeight: 19 },
   surahTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', fontFamily: 'Cinzel' },
   surahSubtitle: { fontSize: 12, color: '#333', fontFamily: 'BrunoAceSC' },
   versesText: { fontSize: 10, color: '#333', marginTop: 2, fontFamily: 'Jura' },
   arabicName: { fontSize: 26, fontFamily: 'AlMushaf' },
-  
-  
+
+
 
   // MINI PLAYER
   miniPlayerContainer: {
@@ -284,3 +284,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Cinzel'
   },
 });
+
+// Saved on 18 Feb Wed from my office pc
