@@ -94,6 +94,6 @@ const styles = StyleSheet.create({
   divider: { width: '40%', height: 1, backgroundColor: '#E0E0E0', marginVertical: 20 },
   section: { marginBottom: 25, alignItems: 'center' },
   label: { fontSize: 12, color: '#888', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 1 },
-  name: { fontSize: 18, fontWeight: '600', color: '#333' },
+  name: { fontSize: 18, fontWeight: '600', color: '#333', textAlign: 'center', flexWrap: 'wrap' },
   link: { fontSize: 16, color: '#BFA868', textDecorationLine: 'underline' },
 });
