@@ -7,10 +7,46 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAudio } from '../context/AudioContext';
 import { staticSurahList } from '../data/surahList';
 
-
+// 🔥 THE OFFICIAL 30 JUZ MAPPING
+const juzList = [
+  { number: 1, name: 'آلم', englishName: 'Alif Lam Meem', surahId: 1, verseNum: 1 },
+  { number: 2, name: 'سيقول', englishName: 'Sayaqool', surahId: 2, verseNum: 142 },
+  { number: 3, name: 'تلك الرسل', englishName: 'Tilkal Rusull', surahId: 2, verseNum: 253 },
+  { number: 4, name: 'لن تنالوا', englishName: 'Lan Tana Loo', surahId: 3, verseNum: 93 },
+  { number: 5, name: 'والمحصنات', englishName: 'Wal Mohsanat', surahId: 4, verseNum: 24 },
+  { number: 6, name: 'لا يحب الله', englishName: 'La Yuhibbullah', surahId: 4, verseNum: 148 },
+  { number: 7, name: 'واذا سمعوا', englishName: 'Wa Iza Samiu', surahId: 5, verseNum: 82 },
+  { number: 8, name: 'ولو اننا', englishName: 'Wa Lau Annana', surahId: 6, verseNum: 111 },
+  { number: 9, name: 'قال الملأ', englishName: 'Qalal Malao', surahId: 7, verseNum: 88 },
+  { number: 10, name: 'واعلموا', englishName: 'Wa A\'lamu', surahId: 8, verseNum: 41 },
+  { number: 11, name: 'يعتذرون', englishName: 'Yatazeroon', surahId: 9, verseNum: 93 },
+  { number: 12, name: 'وما من دابة', englishName: 'Wa Mamin Da\'abat', surahId: 11, verseNum: 6 },
+  { number: 13, name: 'وما ابرئ', englishName: 'Wa Ma Ubarri\'u', surahId: 12, verseNum: 53 },
+  { number: 14, name: 'ربما', englishName: 'Rubama', surahId: 15, verseNum: 1 },
+  { number: 15, name: 'سبحان الذي', englishName: 'Subhanallazi', surahId: 17, verseNum: 1 },
+  { number: 16, name: 'قال ألم', englishName: 'Qal Alam', surahId: 18, verseNum: 75 },
+  { number: 17, name: 'اقترب للناس', englishName: 'Iqtaraba Lin Nasi', surahId: 21, verseNum: 1 },
+  { number: 18, name: 'قد أفلح', englishName: 'Qad Aflaha', surahId: 23, verseNum: 1 },
+  { number: 19, name: 'وقال الذين', englishName: 'Wa Qalal Lazina', surahId: 25, verseNum: 21 },
+  { number: 20, name: 'أمن خلق', englishName: 'A\'man Khalaqa', surahId: 27, verseNum: 56 },
+  { number: 21, name: 'اتل ما اوحي', englishName: 'Utlu Ma Oohi', surahId: 29, verseNum: 46 },
+  { number: 22, name: 'ومن يقنت', englishName: 'Wa Manyaqnut', surahId: 33, verseNum: 31 },
+  { number: 23, name: 'وما انزلنا', englishName: 'Wa Ma Anzalna', surahId: 36, verseNum: 28 },
+  { number: 24, name: 'فمن أظلم', englishName: 'Faman Azlamu', surahId: 39, verseNum: 32 },
+  { number: 25, name: 'إليه يرد', englishName: 'Ilayhi Yuraddu', surahId: 41, verseNum: 47 },
+  { number: 26, name: 'حم', englishName: 'Ha Meem', surahId: 46, verseNum: 1 },
+  { number: 27, name: 'قال فما خطبكم', englishName: 'Qala Fama Khatbukum', surahId: 51, verseNum: 31 },
+  { number: 28, name: 'قد سمع الله', englishName: 'Qadd Sami Allah', surahId: 58, verseNum: 1 },
+  { number: 29, name: 'تبارك الذي', englishName: 'Tabarakallazi', surahId: 67, verseNum: 1 },
+  { number: 30, name: 'عم يتساءلون', englishName: 'Amma Yatasa\'aloon', surahId: 78, verseNum: 1 },
+];
 
 export default function HomeScreen() {
   const router = useRouter();
+  
+  // 🔥 NEW STATE: Track the active tab
+  const [activeTab, setActiveTab] = useState<'surah' | 'juz'>('surah');
+  
   const [filteredSurahs, setFilteredSurahs] = useState(staticSurahList);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -19,12 +55,6 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const initializeSync = async () => {
-      // 1. ADD THIS LINE:
-
-
-      // 2. RUN THE APP ONCE
-      // 3. DELETE THE LINE ABOVE AFTER THE APP LOADS
-
       const lastIdStr = await AsyncStorage.getItem('last_bg_download_id');
       // ... rest of your code
     };
@@ -43,14 +73,13 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // 🔥 HELPER: Remove Tashkeel (diacritics) from Arabic text for easier searching
   const normalizeArabic = (text: string) => {
     return text.replace(/[\u064B-\u065F]/g, '');
   };
 
-  // 🔥 UPDATED SEARCH LOGIC
   const handleSearch = (text: string) => {
     setSearchQuery(text);
+    setActiveTab('surah'); // Auto-switch to Surah tab if they start searching
 
     if (!text) {
       setFilteredSurahs(staticSurahList);
@@ -58,13 +87,11 @@ export default function HomeScreen() {
     }
 
     const lowerText = text.toLowerCase();
-    const normalizedInput = normalizeArabic(text); // Handle Arabic input
+    const normalizedInput = normalizeArabic(text); 
 
     const filtered = staticSurahList.filter(s => {
       const englishMatch = s.englishName.toLowerCase().includes(lowerText);
       const numberMatch = s.number.toString().includes(lowerText);
-
-      // Check Arabic Name (ignoring tashkeel)
       const arabicNameNormalized = normalizeArabic(s.name);
       const arabicMatch = arabicNameNormalized.includes(normalizedInput);
 
@@ -85,17 +112,13 @@ export default function HomeScreen() {
       <StatusBar barStyle="dark-content" />
 
       <View style={styles.fixedHeader}>
-        {/* Header Section */}
         <View style={styles.brandingContainer}>
           <Text style={styles.brandingTitle}>The Noble Quran</Text>
-
           <TouchableOpacity onPress={() => router.push('/credits')}>
             <Ionicons name="information-circle-outline" size={28} color="#000" />
           </TouchableOpacity>
-
         </View>
 
-        {/* 🔥 UPDATED SEARCH BAR */}
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#fee08c" style={{ marginRight: 10 }} />
           <TextInput
@@ -117,56 +140,92 @@ export default function HomeScreen() {
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <FlatList
-          data={filteredSurahs}
+          // 🔥 DYNAMIC DATA: Swap between Surahs or Juz
+          data={activeTab === 'surah' ? filteredSurahs : juzList}
+          keyExtractor={(item) => item.number.toString()}
+          contentContainerStyle={{ padding: 20, paddingBottom: 130 }}
+          
           ListHeaderComponent={
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
-              <TouchableOpacity
-                style={[styles.miniCard, { backgroundColor: '#252525', marginRight: 10 }]}
-                onPress={() => lastRead && router.push({ pathname: '/player', params: { surahId: lastRead.surahId, initialAyah: lastRead.verseNum } })}
-              >
-                <Text style={styles.cardLabel}>LAST READ</Text>
-                <Text style={styles.cardMainText} numberOfLines={1}>{lastRead?.nameAr || "Al-Fatiha"}</Text>
+            <View>
+              {/* TOP CARDS */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+                <TouchableOpacity
+                  style={[styles.miniCard, { backgroundColor: '#252525', marginRight: 10 }]}
+                  onPress={() => lastRead && router.push({ pathname: '/player', params: { surahId: lastRead.surahId, initialAyah: lastRead.verseNum } })}
+                >
+                  <Text style={styles.cardLabel}>LAST READ</Text>
+                  <Text style={styles.cardMainText} numberOfLines={1}>{lastRead?.nameAr || "Al-Fatiha"}</Text>
+                  <Text style={[styles.cardSubText, { color: '#FFF' }]}>Ayah {lastRead?.verseNum || "1"}</Text>
+                </TouchableOpacity>
 
-                {/* 🔥 FIX: Display Verse NUMBER (relative) not ID (global) */}
-                <Text style={[styles.cardSubText, { color: '#FFF' }]}>Ayah {lastRead?.verseNum || "1"}</Text>
-              </TouchableOpacity>
+                <TouchableOpacity style={[styles.miniCard, { backgroundColor: '#252525' }]} onPress={() => router.push('/favorites')}>
+                  <Text style={styles.cardLabel}>FAVORITES</Text>
+                  <Text style={styles.cardMainText}>{favorites?.length || 0} Saved</Text>
+                  <Text style={[styles.cardSubText, { color: '#FFF' }]}>View All</Text>
+                </TouchableOpacity>
+              </View>
 
-              <TouchableOpacity style={[styles.miniCard, { backgroundColor: '#252525' }]} onPress={() => router.push('/favorites')}>
-                <Text style={styles.cardLabel}>FAVORITES</Text>
-                <Text style={styles.cardMainText}>{favorites?.length || 0} Saved</Text>
-                <Text style={[styles.cardSubText, { color: '#FFF' }]}>View All</Text>
-              </TouchableOpacity>
+              {/* 🔥 NEW: CHAPTER & JUZ NAVIGATION BUTTONS */}
+              <View style={styles.tabContainer}>
+                <TouchableOpacity 
+                  style={[styles.tabButton, activeTab === 'surah' && styles.tabButtonActive]} 
+                  onPress={() => setActiveTab('surah')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'surah' && styles.tabTextActive]}>Chapter (Surah)</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={[styles.tabButton, activeTab === 'juz' && styles.tabButtonActive]} 
+                  onPress={() => setActiveTab('juz')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'juz' && styles.tabTextActive]}>Juz (Parah)</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           }
-          contentContainerStyle={{ padding: 20, paddingBottom: 130 }}
-          keyExtractor={(item) => item.number.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.surahCard}
-              onPress={() => router.push({ pathname: '/player', params: { surahId: item.number } })}
-            >
-              <View style={styles.numberCircle}><Text style={styles.numberText}>{item.number}</Text></View>
-              <View style={{ flex: 1, marginLeft: 15, justifyContent: 'center' }}>
-                {/* Top: Surah Name */}
-                <Text style={styles.surahTitle}>{item.englishName}</Text>
 
-                {/* Middle: Translation (BrunoAceSC Font) */}
-                <Text style={styles.surahSubtitle}>
-                  {item.englishNameTranslation}
-                </Text>
-
-                {/* Bottom: Verse Count (Smaller & Different Color) */}
-                <Text style={styles.versesText}>
-                  {item.numberOfAyahs} Verses
-                </Text>
-              </View>
-              <Text style={styles.arabicName}>{item.name}</Text>
-            </TouchableOpacity>
-          )}
+          // 🔥 DYNAMIC RENDER: Change how the card looks based on the tab
+          renderItem={({ item }) => {
+            if (activeTab === 'surah') {
+              // --- RENDER SURAH CARD ---
+              return (
+                <TouchableOpacity
+                  style={styles.surahCard}
+                  onPress={() => router.push({ pathname: '/player', params: { surahId: item.number } })}
+                >
+                  <View style={styles.numberCircle}><Text style={styles.numberText}>{item.number}</Text></View>
+                  <View style={{ flex: 1, marginLeft: 15, justifyContent: 'center' }}>
+                    <Text style={styles.surahTitle}>{item.englishName}</Text>
+                    <Text style={styles.surahSubtitle}>{(item as any).englishNameTranslation}</Text>
+                    <Text style={styles.versesText}>{(item as any).numberOfAyahs} Verses</Text>
+                  </View>
+                  <Text style={styles.arabicName}>{item.name}</Text>
+                </TouchableOpacity>
+              );
+            } else {
+              // --- RENDER JUZ CARD ---
+              
+              return (
+                <TouchableOpacity
+                  style={styles.surahCard}
+                  // 👇 THIS LINE IS THE MAGIC 👇
+                  onPress={() => router.push({ pathname: '/player', params: { surahId: item.surahId, initialAyah: item.verseNum } })}
+                >
+                  <View style={styles.numberCircle}><Text style={styles.numberText}>{item.number}</Text></View>
+                  <View style={{ flex: 1, marginLeft: 15, justifyContent: 'center' }}>
+                    <Text style={styles.surahTitle}>{item.englishName}</Text>
+                    {/* 👇 Updated to show exactly where it starts 👇 */}
+                    <Text style={styles.surahSubtitle}>Starts at Surah {item.surahId}, Ayah {item.verseNum}</Text>
+                  </View>
+                  <Text style={styles.arabicName}>{item.name}</Text>
+                </TouchableOpacity>
+              );
+            }
+          }}
         />
       </KeyboardAvoidingView>
 
-      {/* MINI PLAYER */}
+      {/* MINI PLAYER (Unchanged) */}
       {currentSurah && (
         <View style={styles.miniPlayerContainer}>
           <View style={styles.controlsRow}>
@@ -175,12 +234,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity onPress={togglePlay} style={styles.miniPlayButton}>
-              <Ionicons
-                name={isPlaying ? "pause" : "play"}
-                size={26}
-                color="#000"
-                style={!isPlaying ? { marginLeft: 4 } : {}}
-              />
+              <Ionicons name={isPlaying ? "pause" : "play"} size={26} color="#000" style={!isPlaying ? { marginLeft: 4 } : {}} />
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => skipSurah('prev')} style={styles.skipBtn}>
@@ -202,7 +256,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FDFBF7' },
   fixedHeader: { paddingHorizontal: 20, paddingTop: 10, backgroundColor: '#FDFBF7' },
-  brandingContainer: { alignItems: 'center', marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 20, paddingHorizontal: 25, },
+  brandingContainer: { alignItems: 'center', marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 25, },
   brandingTitle: { fontSize: 25, fontWeight: 'bold', color: '#847347', fontFamily: 'Cinzel' },
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 25, paddingHorizontal: 15, paddingVertical: 12, borderWidth: 1, borderColor: '#fee08c' },
   searchInput: { flex: 1, fontSize: 16, textAlign: 'left', color: '#333', marginRight: 10, fontFamily: 'Jura' },
@@ -218,7 +272,37 @@ const styles = StyleSheet.create({
   versesText: { fontSize: 10, color: '#333', marginTop: 2, fontFamily: 'Jura' },
   arabicName: { fontSize: 26, fontFamily: 'AlMushaf' },
 
-
+  // 🔥 NEW STYLES: Tab Buttons
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#EAEAEA', // Light gray background
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  tabButtonActive: {
+    backgroundColor: '#252525', // Black to match your cards
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 16,
+    fontFamily: 'Jura',
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  tabTextActive: {
+    color: '#fee08c', // Gold text
+  },
 
   // MINI PLAYER
   miniPlayerContainer: {
@@ -226,7 +310,7 @@ const styles = StyleSheet.create({
     bottom: 25,
     left: 20,
     right: 20,
-    backgroundColor: '#333', // Darker black background
+    backgroundColor: '#333',
     borderRadius: 16,
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -239,50 +323,11 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 4 }
   },
-  controlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15, // Space between buttons
-  },
-  skipBtn: {
-    padding: 5,
-  },
-  miniPlayButton: {
-    width: 55,  // Bigger circle
-    height: 55,
-    borderRadius: 27.5, // Perfect circle
-    backgroundColor: '#fee08c', // Gold color
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 5
-  },
-  textColumn: {
-    flex: 1,
-    alignItems: 'flex-end', // Align text to the right
-    justifyContent: 'center',
-    marginRight: 10, // 👈 Fixes text stuck at the corner
-  },
-  miniPlayerLabel: {
-    color: '#ffffff',
-    fontSize: 12,
-    letterSpacing: 2,
-    marginBottom: 2,
-    textTransform: 'uppercase',
-    fontFamily: 'Jura'
-  },
-  miniPlayerTitle: {
-    color: '#fee08c',
-    fontFamily: 'AlMushaf', // Arabic Font
-    fontSize: 26,
-    textAlign: 'right',
-  },
-  miniPlayerSub: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'right',
-    fontFamily: 'Cinzel'
-  },
+  controlsRow: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  skipBtn: { padding: 5 },
+  miniPlayButton: { width: 55, height: 55, borderRadius: 27.5, backgroundColor: '#fee08c', justifyContent: 'center', alignItems: 'center', marginHorizontal: 5 },
+  textColumn: { flex: 1, alignItems: 'flex-end', justifyContent: 'center', marginRight: 10 },
+  miniPlayerLabel: { color: '#ffffff', fontSize: 12, letterSpacing: 2, marginBottom: 2, textTransform: 'uppercase', fontFamily: 'Jura' },
+  miniPlayerTitle: { color: '#fee08c', fontFamily: 'AlMushaf', fontSize: 26, textAlign: 'right' },
+  miniPlayerSub: { color: '#FFF', fontSize: 14, fontWeight: '600', textAlign: 'right', fontFamily: 'Cinzel' },
 });
-
-// Saved on 19 Feb Wed from my office pc

@@ -69,6 +69,7 @@ export default function PlayerScreen() {
     playAyah, favorites, activeReciter, changeReciter, RECITERS,
     themeMode, setThemeMode, fontSize, setFontSize, showTranslation, setShowTranslation, toggleFavorite, saveLastRead
   } = useAudio();
+  const initialAyah = params.initialAyah;
 
   const surahId = parseInt(Array.isArray(params.surahId) ? params.surahId[0] : params.surahId) || 1;
 
@@ -86,6 +87,8 @@ export default function PlayerScreen() {
   const flatListRef = useRef<FlatList>(null);
   const isDarkMode = themeMode === 'system' ? systemScheme === 'dark' : themeMode === 'dark';
   const COLORS = isDarkMode ? DARK_THEME : LIGHT_THEME;
+
+  
 
   // 👇 PASTE THE NEW CODE HERE 👇
   useEffect(() => {
@@ -139,6 +142,25 @@ export default function PlayerScreen() {
       if (index !== -1) flatListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
     }
   }, [currentAyahId, viewingSurah]);
+
+  // 🔥 AUTO-SCROLL FOR JUZ & LAST READ
+  useEffect(() => {
+    if (viewingSurah && viewingSurah.verses && initialAyah) {
+      const targetIndex = viewingSurah.verses.findIndex(
+        (v: any) => String(v.numberInSurah) === String(initialAyah)
+      );
+
+      if (targetIndex !== -1 && flatListRef.current) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({
+            index: targetIndex,
+            animated: false, // 👈 FIX 1: Change to false to snap instantly
+            viewPosition: 0.1, 
+          });
+        }, 500); 
+      }
+    }
+  }, [viewingSurah?.id, initialAyah]);
 
 
   const handleOptionSelect = async (action: 'bookmark' | 'favorite') => {
@@ -202,11 +224,34 @@ export default function PlayerScreen() {
         keyExtractor={(item) => item.id.toString()}
         extraData={[currentLastRead, currentAyahId, favorites, themeMode, position]}
 
+        
+
         removeClippedSubviews={false}
         windowSize={10}
         onScrollToIndexFailed={(info) => {
           setTimeout(() => { flatListRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.3 }); }, 100);
         }}
+
+        // 👇 MAKE SURE THIS IS ADDED 👇
+          onScrollToIndexFailed={(info) => {
+            // 1. Jump instantly to the furthest loaded item
+            flatListRef.current?.scrollToIndex({ 
+              index: info.highestMeasuredFrameIndex, 
+              animated: false 
+            });
+
+            // 2. Try the actual target again INSTANTLY (no animation) to break the loop
+            setTimeout(() => {
+              flatListRef.current?.scrollToIndex({ 
+                index: info.index, 
+                animated: false, // 👈 FIX 2: Change to false!
+                viewPosition: 0.1 
+              });
+            }, 100); // Reduced time to 100ms so it feels faster
+          }}
+          // 👆 ---------------------- 👆
+
+
         renderItem={({ item, index }) => (
           <AyahItem
             item={item}
