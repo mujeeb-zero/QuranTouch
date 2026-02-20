@@ -317,7 +317,14 @@ export const AudioProvider = ({ children }: any) => {
     }
   };
 
-  const togglePlay = async () => { if (soundRef.current) isPlaying ? await soundRef.current.pauseAsync() : await soundRef.current.playAsync(); };
+  const togglePlay = async () => { 
+    if (soundRef.current) {
+      isPlaying ? await soundRef.current.pauseAsync() : await soundRef.current.playAsync(); 
+    } else if (surahRef.current) {
+      // If the sound was killed (e.g., reciter changed), reload the current Ayah!
+      await playAyah(indexRef.current);
+    }
+  };
   const seekTo = async (value: number) => { if (soundRef.current) await soundRef.current.setPositionAsync(value); };
 
   return (
@@ -327,12 +334,16 @@ export const AudioProvider = ({ children }: any) => {
         activeReciter, RECITERS, themeMode, fontSize, showTranslation,
         changeReciter, setThemeMode, setFontSize, setShowTranslation,
         playSurah,
-        playAyah: (surah: any, idx: number) => {
+        playAyah: async (surah: any, idx: number) => {
           if (surah.id !== surahRef.current?.id) {
+            // 👇 FIX: If Surah changes, completely wipe old audio and reset the index!
+            await killAllSounds(); 
+            indexRef.current = -1; 
+            
             surahRef.current = surah;
             setCurrentSurah(surah);
           }
-          playAyah(idx);
+          await playAyah(idx);
         },
         togglePlay, skipAyah, seekTo, toggleFavorite, saveLastRead,
       }}>

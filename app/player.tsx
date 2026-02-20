@@ -88,7 +88,7 @@ export default function PlayerScreen() {
   const isDarkMode = themeMode === 'system' ? systemScheme === 'dark' : themeMode === 'dark';
   const COLORS = isDarkMode ? DARK_THEME : LIGHT_THEME;
 
-  
+
 
   // 👇 PASTE THE NEW CODE HERE 👇
   useEffect(() => {
@@ -103,10 +103,10 @@ export default function PlayerScreen() {
     const loadData = async () => {
       setIsFetching(true);
       const data = await fetchSurah(surahId);
-      
+
       // 👇 FIXED: Changed 'lastread' to 'last_read' to match your save function
-      const saved = await AsyncStorage.getItem('last_read'); 
-      
+      const saved = await AsyncStorage.getItem('last_read');
+
       if (isMounted && data) {
         setViewingSurah(data);
         if (saved) setCurrentLastRead(JSON.parse(saved));
@@ -155,9 +155,9 @@ export default function PlayerScreen() {
           flatListRef.current?.scrollToIndex({
             index: targetIndex,
             animated: false, // 👈 FIX 1: Change to false to snap instantly
-            viewPosition: 0.1, 
+            viewPosition: 0.1,
           });
-        }, 500); 
+        }, 500);
       }
     }
   }, [viewingSurah?.id, initialAyah]);
@@ -172,7 +172,7 @@ export default function PlayerScreen() {
         verseId: longPressedAyah.id,
         verseNum: longPressedAyah.numberInSurah,
         nameEn: viewingSurah.englishName,
-        nameAr: viewingSurah.nameAr 
+        nameAr: viewingSurah.nameAr
       };
 
       // You are saving it here as 'last_read'
@@ -224,7 +224,7 @@ export default function PlayerScreen() {
         keyExtractor={(item) => item.id.toString()}
         extraData={[currentLastRead, currentAyahId, favorites, themeMode, position]}
 
-        
+
 
         removeClippedSubviews={false}
         windowSize={10}
@@ -233,23 +233,23 @@ export default function PlayerScreen() {
         }}
 
         // 👇 MAKE SURE THIS IS ADDED 👇
-          onScrollToIndexFailed={(info) => {
-            // 1. Jump instantly to the furthest loaded item
-            flatListRef.current?.scrollToIndex({ 
-              index: info.highestMeasuredFrameIndex, 
-              animated: false 
-            });
+        onScrollToIndexFailed={(info) => {
+          // 1. Jump instantly to the furthest loaded item
+          flatListRef.current?.scrollToIndex({
+            index: info.highestMeasuredFrameIndex,
+            animated: false
+          });
 
-            // 2. Try the actual target again INSTANTLY (no animation) to break the loop
-            setTimeout(() => {
-              flatListRef.current?.scrollToIndex({ 
-                index: info.index, 
-                animated: false, // 👈 FIX 2: Change to false!
-                viewPosition: 0.1 
-              });
-            }, 100); // Reduced time to 100ms so it feels faster
-          }}
-          // 👆 ---------------------- 👆
+          // 2. Try the actual target again INSTANTLY (no animation) to break the loop
+          setTimeout(() => {
+            flatListRef.current?.scrollToIndex({
+              index: info.index,
+              animated: false, // 👈 FIX 2: Change to false!
+              viewPosition: 0.1
+            });
+          }, 100); // Reduced time to 100ms so it feels faster
+        }}
+        // 👆 ---------------------- 👆
 
 
         renderItem={({ item, index }) => (
@@ -257,27 +257,27 @@ export default function PlayerScreen() {
             item={item}
             index={index}
             isActive={currentSurah?.id === viewingSurah.id && currentAyahId === item.id}
-            
+
             // 👇 ROBUST CHECK (Ensures icon shows up)
             isLastRead={
-              currentLastRead && 
-              String(currentLastRead.surahId) === String(viewingSurah.id) && 
+              currentLastRead &&
+              String(currentLastRead.surahId) === String(viewingSurah.id) &&
               (
-                 String(currentLastRead.verseNum) === String(item.numberInSurah) ||
-                 String(currentLastRead.verseId) === String(item.id) ||
-                 String(currentLastRead.ayah) === String(item.numberInSurah)
+                String(currentLastRead.verseNum) === String(item.numberInSurah) ||
+                String(currentLastRead.verseId) === String(item.id) ||
+                String(currentLastRead.ayah) === String(item.numberInSurah)
               )
             }
 
             isFav={favorites?.some((f: any) => f.surahId === viewingSurah.id && f.verseId === item.id)}
             fontSize={fontSize} theme={COLORS} showTranslation={showTranslation}
             onPress={(idx: number) => playAyah(viewingSurah, idx)}
-            
+
             onLongPress={(ayahData) => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               setLongPressedAyah(ayahData);
             }}
-            
+
             duration={duration} position={position} seekTo={seekTo}
           />
         )}
@@ -339,11 +339,21 @@ export default function PlayerScreen() {
                   }}
                 >
                   <Image
-                    source={item.image} 
+                    source={item.image}
                     style={{ width: 50, height: 50, borderRadius: 25, marginRight: 15, borderWidth: 1, borderColor: '#DDD' }}
                   />
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 18, fontFamily: 'Cinzel', color: activeReciter.id === item.id ? COLORS.primary : COLORS.text, fontWeight: activeReciter.id === item.id ? 'bold' : 'normal' }}>{item.name}</Text>
+
+
+                    <Text style={{
+                      fontSize: 18,
+                      fontFamily: 'Cinzel',
+                      color: activeReciter.id === item.id ? COLORS.primary : COLORS.text
+                    }}>
+                      {item.name}
+                    </Text>
+
+
                   </View>
                   {activeReciter.id === item.id && <Ionicons name="checkmark-circle" size={24} color={COLORS.primary} />}
                 </TouchableOpacity>

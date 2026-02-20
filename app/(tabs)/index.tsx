@@ -43,10 +43,10 @@ const juzList = [
 
 export default function HomeScreen() {
   const router = useRouter();
-  
+
   // 🔥 NEW STATE: Track the active tab
   const [activeTab, setActiveTab] = useState<'surah' | 'juz'>('surah');
-  
+
   const [filteredSurahs, setFilteredSurahs] = useState(staticSurahList);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -87,7 +87,7 @@ export default function HomeScreen() {
     }
 
     const lowerText = text.toLowerCase();
-    const normalizedInput = normalizeArabic(text); 
+    const normalizedInput = normalizeArabic(text);
 
     const filtered = staticSurahList.filter(s => {
       const englishMatch = s.englishName.toLowerCase().includes(lowerText);
@@ -113,7 +113,13 @@ export default function HomeScreen() {
 
       <View style={styles.fixedHeader}>
         <View style={styles.brandingContainer}>
+          {/* 1. Invisible spacer to balance the 28px icon on the right */}
+          <View style={{ width: 28 }} />
+
+          {/* 2. Your title (Now perfectly centered!) */}
           <Text style={styles.brandingTitle}>The Noble Quran</Text>
+
+          {/* 3. Your info icon */}
           <TouchableOpacity onPress={() => router.push('/credits')}>
             <Ionicons name="information-circle-outline" size={28} color="#000" />
           </TouchableOpacity>
@@ -144,7 +150,7 @@ export default function HomeScreen() {
           data={activeTab === 'surah' ? filteredSurahs : juzList}
           keyExtractor={(item) => item.number.toString()}
           contentContainerStyle={{ padding: 20, paddingBottom: 130 }}
-          
+
           ListHeaderComponent={
             <View>
               {/* TOP CARDS */}
@@ -167,15 +173,15 @@ export default function HomeScreen() {
 
               {/* 🔥 NEW: CHAPTER & JUZ NAVIGATION BUTTONS */}
               <View style={styles.tabContainer}>
-                <TouchableOpacity 
-                  style={[styles.tabButton, activeTab === 'surah' && styles.tabButtonActive]} 
+                <TouchableOpacity
+                  style={[styles.tabButton, activeTab === 'surah' && styles.tabButtonActive]}
                   onPress={() => setActiveTab('surah')}
                 >
                   <Text style={[styles.tabText, activeTab === 'surah' && styles.tabTextActive]}>Chapter (Surah)</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={[styles.tabButton, activeTab === 'juz' && styles.tabButtonActive]} 
+                <TouchableOpacity
+                  style={[styles.tabButton, activeTab === 'juz' && styles.tabButtonActive]}
                   onPress={() => setActiveTab('juz')}
                 >
                   <Text style={[styles.tabText, activeTab === 'juz' && styles.tabTextActive]}>Juz (Parah)</Text>
@@ -204,7 +210,7 @@ export default function HomeScreen() {
               );
             } else {
               // --- RENDER JUZ CARD ---
-              
+
               return (
                 <TouchableOpacity
                   style={styles.surahCard}
@@ -256,8 +262,15 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FDFBF7' },
   fixedHeader: { paddingHorizontal: 20, paddingTop: 10, backgroundColor: '#FDFBF7' },
-  brandingContainer: { alignItems: 'center', marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 25, },
-  brandingTitle: { fontSize: 25, fontWeight: 'bold', color: '#847347', fontFamily: 'Cinzel' },
+  brandingContainer: {
+    alignItems: 'center',
+    marginBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'center', // 👈 Changed to 'center'
+    width: '100%',
+    paddingHorizontal: 25,
+  },
+  brandingTitle: { fontSize: 25, color: '#847347', fontFamily: 'Cinzel' }, //fontWeight: 'bold'
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 25, paddingHorizontal: 15, paddingVertical: 12, borderWidth: 1, borderColor: '#fee08c' },
   searchInput: { flex: 1, fontSize: 16, textAlign: 'left', color: '#333', marginRight: 10, fontFamily: 'Jura' },
   miniCard: { flex: 1, padding: 15, borderRadius: 12, height: 120, elevation: 4, justifyContent: 'center' },
@@ -267,7 +280,7 @@ const styles = StyleSheet.create({
   surahCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#EEE' },
   numberCircle: { width: 43, height: 43, borderRadius: 19, borderWidth: 1, borderColor: '#333', justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
   numberText: { color: '#333', fontSize: 19, fontFamily: 'AlmendraSC', textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false, lineHeight: 19 },
-  surahTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', fontFamily: 'Cinzel' },
+  surahTitle: { fontSize: 18, color: '#333', fontFamily: 'Cinzel' }, // fontWeight: 'bold'
   surahSubtitle: { fontSize: 12, color: '#333', fontFamily: 'BrunoAceSC' },
   versesText: { fontSize: 10, color: '#333', marginTop: 2, fontFamily: 'Jura' },
   arabicName: { fontSize: 26, fontFamily: 'AlMushaf' },
@@ -297,7 +310,7 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 16,
     fontFamily: 'Jura',
-    fontWeight: 'bold',
+    // fontWeight: 'bold',
     color: '#666',
   },
   tabTextActive: {

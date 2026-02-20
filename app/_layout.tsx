@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as BackgroundFetch from 'expo-background-fetch';
 import { useFonts } from 'expo-font';
+import { useKeepAwake } from 'expo-keep-awake';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as TaskManager from 'expo-task-manager';
@@ -34,14 +35,14 @@ TaskManager.defineTask(BACKGROUND_DOWNLOAD_TASK, async () => {
 });
 
 export default function RootLayout() {
-  // 2. Load Fonts (FIXED: Unique keys for each font)
+  useKeepAwake();
+  
   const [fontsLoaded] = useFonts({
     'AlMushaf': require('../assets/fonts/AlMushaf.ttf'), 
     'AlmendraSC': require('../assets/fonts/AlmendraSC.ttf'),
     'BrunoAceSC': require('../assets/fonts/BrunoAceSC.ttf'),
-    // 👇 Fixed these keys (was 'BrunoAceSC' for all of them)
     'Jura': require('../assets/fonts/Jura.ttf'),
-    'Cinzel': require('../assets/fonts/Cinzel.ttf') // Check if file is named Cinzel.ttf or Cinzel-Regular.ttf
+    'Cinzel': require('../assets/fonts/Cinzel.ttf')
   });
 
   // 3. Register Background Task

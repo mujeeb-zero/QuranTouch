@@ -86,10 +86,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FDFBF7', paddingTop: 60 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 20 },
   backButton: { marginRight: 15, padding: 5 },
-  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#000', fontFamily: 'Cinzel-Bold' },
+  headerTitle: { fontSize: 20, color: '#000', fontFamily: 'Cinzel' }, //fontWeight: 'bold'
   content: { alignItems: 'center', paddingHorizontal: 30 },
   logoContainer: { marginBottom: 15, marginTop: 20 },
-  appName: { fontSize: 24, fontWeight: 'bold', color: '#000', fontFamily: 'Cinzel-Bold', marginBottom: 5 },
+  appName: { fontSize: 24, color: '#000', fontFamily: 'Cinzel', marginBottom: 5 }, //fontWeight: 'bold'
   version: { fontSize: 14, color: '#888', marginBottom: 30 },
   divider: { width: '40%', height: 1, backgroundColor: '#E0E0E0', marginVertical: 20 },
   section: { marginBottom: 25, alignItems: 'center' },
