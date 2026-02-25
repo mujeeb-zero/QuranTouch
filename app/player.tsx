@@ -418,4 +418,4 @@ const styles = StyleSheet.create({
   modalText: { marginLeft: 15, fontSize: 16, fontFamily: 'Jura' }
 });
 
-// Saved on 25 Feb Wed from my home, updated splash.png
+// Saved on 25 Feb Wed from my home, updated folder name on local drive as build 3
