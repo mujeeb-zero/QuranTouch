@@ -19,11 +19,11 @@ export default function CreditsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* App Logo Area */}
         <View style={styles.logoContainer}>
-          <Ionicons name="book" size={60} color="#BFA868" />
+          <Ionicons name="book-outline" size={60} color="#BFA868" />
         </View>
 
         <Text style={styles.appName}>The Noble Quran</Text>
-        <Text style={styles.version}>Version 1.0.0</Text>
+        <Text style={styles.version}>Version 1.0.1</Text>
 
         <View style={styles.divider} />
 

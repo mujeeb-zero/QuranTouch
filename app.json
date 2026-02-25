@@ -18,9 +18,9 @@
       "buildNumber": "1",
       "infoPlist": {
         "UIBackgroundModes": [
-          "audio",
-          "fetch"
-        ]
+          "audio"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -29,9 +29,10 @@
         "backgroundColor": "#fee08c"
       },
       "package": "com.zero.thenobelquran",
-      "versionCode": 2,
+      "versionCode": 3,
       "permissions": [
         "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_AUDIO_PLAYBACK",
         "WAKE_LOCK"
       ]
     },
