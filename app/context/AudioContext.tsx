@@ -28,6 +28,8 @@ export const AudioProvider = ({ children }: any) => {
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const playbackSpeedRef = useRef(1.0); // 👈 ADD THIS LINE
   
   // --- PREFERENCES ---
   const [favorites, setFavorites] = useState<any[]>([]);
@@ -165,6 +167,8 @@ export const AudioProvider = ({ children }: any) => {
         await killPrevPreloadedSound();
         const audioUrl = getReciterUrl(activeReciterRef.current.urlPath, surahRef.current.id, prevIndex);
         const { sound } = await Audio.Sound.createAsync({ uri: audioUrl }, { shouldPlay: false });
+        // Apply speed to previous track
+        await sound.setRateAsync(playbackSpeedRef.current, true);
         prevPreloadedSoundRef.current = sound;
       } catch (error) {} 
       finally { isPreloadingPrev.current = false; }
@@ -177,6 +181,8 @@ export const AudioProvider = ({ children }: any) => {
         await killNextPreloadedSound();
         const audioUrl = getReciterUrl(activeReciterRef.current.urlPath, surahRef.current.id, nextIndex);
         const { sound } = await Audio.Sound.createAsync({ uri: audioUrl }, { shouldPlay: false });
+        // Apply speed to next track
+        await sound.setRateAsync(playbackSpeedRef.current, true);
         nextPreloadedSoundRef.current = sound;
       } catch (error) {} 
       finally { isPreloadingNext.current = false; }
@@ -290,6 +296,22 @@ export const AudioProvider = ({ children }: any) => {
     finally { isBusy.current = false; }
   };
 
+  const changeSpeed = async (rate: number) => {
+    setPlaybackSpeed(rate); 
+    playbackSpeedRef.current = rate;
+    // Instantly update the current playing sound
+    if (soundRef.current) {
+      await soundRef.current.setRateAsync(rate, true); 
+    }
+    // Instantly update the preloaded sounds so the next track doesn't play at the old speed!
+    if (nextPreloadedSoundRef.current) {
+      await nextPreloadedSoundRef.current.setRateAsync(rate, true);
+    }
+    if (prevPreloadedSoundRef.current) {
+      await prevPreloadedSoundRef.current.setRateAsync(rate, true);
+    }
+  };
+
   const skipAyah = async (direction: 'next' | 'prev') => {
     if (!surahRef.current || isBusy.current) return;
     const newIndex = direction === 'next' ? indexRef.current + 1 : indexRef.current - 1;
@@ -345,9 +367,12 @@ export const AudioProvider = ({ children }: any) => {
           }
           await playAyah(idx);
         },
-        togglePlay, skipAyah, seekTo, toggleFavorite, saveLastRead,
+        togglePlay, skipAyah, seekTo, toggleFavorite, saveLastRead, playbackSpeed, changeSpeed,
       }}>
       {children}
     </AudioContext.Provider>
   );
+
+
+  
 };

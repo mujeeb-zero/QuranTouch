@@ -4,22 +4,11 @@ import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Modal,
-  Pressable,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useColorScheme
-} from 'react-native';
+import { ActivityIndicator, FlatList, Image, Modal, Pressable, StatusBar, StyleSheet, Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fetchSurah } from '../api/quranApi';
 import { useAudio } from './context/AudioContext';
+
 
 const LIGHT_THEME = { background: '#FDFBF7', text: '#2D2D2D', primary: '#BFA868', highlight: '#FFF9E6', brackets: '#847347', controlBg: '#FFF', headerBorder: '#EEE', panelBg: '#FFF', panelBorder: '#BFA868', modalBg: '#FFF', aaBg: '#333' };
 const DARK_THEME = { background: '#1A1A1A', text: '#E0E0E0', primary: '#fee08c', highlight: '#2A2A2A', brackets: '#fee08c', controlBg: '#252525', headerBorder: '#333', panelBg: '#252525', panelBorder: '#fee08c', modalBg: '#252525', aaBg: '#333' };
@@ -67,9 +56,18 @@ export default function PlayerScreen() {
   const {
     isPlaying, position, currentAyahId, togglePlay, currentSurah, skipAyah, duration, seekTo,
     playAyah, favorites, activeReciter, changeReciter, RECITERS,
-    themeMode, setThemeMode, fontSize, setFontSize, showTranslation, setShowTranslation, toggleFavorite, saveLastRead
+    themeMode, setThemeMode, fontSize, setFontSize, showTranslation, setShowTranslation, toggleFavorite, saveLastRead, playbackSpeed, 
+  changeSpeed
   } = useAudio();
   const initialAyah = params.initialAyah;
+  // const { playbackSpeed, changeSpeed } = useContext(AudioContext);
+
+  const handleSpeedPress = () => {
+    if (playbackSpeed === 1.0) changeSpeed(1.25);
+    else if (playbackSpeed === 1.25) changeSpeed(1.5);
+    else if (playbackSpeed === 1.5) changeSpeed(2.0);
+    else changeSpeed(1.0); // loop back to normal
+  };
 
   const surahId = parseInt(Array.isArray(params.surahId) ? params.surahId[0] : params.surahId) || 1;
 
@@ -198,10 +196,13 @@ export default function PlayerScreen() {
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       <View style={[styles.header, { borderBottomColor: COLORS.headerBorder }]}>
+        
+        {/* 1. LEFT SIDE: Back Button */}
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={40} color={COLORS.primary} />
         </TouchableOpacity>
 
+        {/* 2. CENTER: Surah Name & Reciter Image */}
         <TouchableOpacity
           onPress={() => setShowReciterList(true)}
           style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}
@@ -213,9 +214,29 @@ export default function PlayerScreen() {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.aaButton}>
-          <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Aa</Text>
-        </TouchableOpacity>
+        {/* 3. RIGHT SIDE: Settings & Speed Wrapper */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          
+          {/* Aa Button */}
+          <TouchableOpacity onPress={() => setShowSettings(true)} style={styles.aaButton}>
+            <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Aa</Text>
+          </TouchableOpacity>
+
+          {/* Speed Button (Styled identically to Aa) */}
+          <TouchableOpacity
+            onPress={handleSpeedPress}
+            style={[
+              styles.aaButton, 
+              { width: 'auto', minWidth: 50, paddingHorizontal: 8 } // Overrides fixed width so "1.25x" fits safely
+            ]}
+          >
+            <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>
+              {playbackSpeed}x
+            </Text>
+          </TouchableOpacity>
+          
+        </View>
+
       </View>
 
       <FlatList
@@ -304,13 +325,61 @@ export default function PlayerScreen() {
       <Modal visible={showSettings} transparent animationType="fade" onRequestClose={() => setShowSettings(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setShowSettings(false)}>
           <View style={[styles.settingsPanel, { backgroundColor: COLORS.panelBg, borderColor: COLORS.panelBorder }]}>
-            <Slider style={{ width: '100%', height: 40 }} minimumValue={20} maximumValue={48} step={2} value={fontSize} onValueChange={setFontSize} minimumTrackTintColor={COLORS.primary} thumbTintColor={COLORS.primary} />
+            <Slider 
+  style={{ width: '100%', height: 40 }} 
+  minimumValue={20} 
+  maximumValue={48} 
+  step={2} 
+  value={fontSize} 
+  onValueChange={setFontSize} 
+  minimumTrackTintColor={COLORS.primary} 
+  // 👇 FIX: Added this line to make the unfilled line visible!
+  maximumTrackTintColor={isDarkMode ? '#555555' : '#E0E0E0'} 
+  thumbTintColor={COLORS.primary} 
+/>
             <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 15 }}>
               {['system', 'light', 'dark'].map((m) => (
-                <TouchableOpacity key={m} onPress={() => setThemeMode(m as any)} style={[styles.themeBtn, { backgroundColor: themeMode === m ? COLORS.primary : 'transparent', borderColor: COLORS.primary }]}><Text style={{ color: themeMode === m ? '#FFF' : COLORS.text, fontSize: 11 }}>{m.toUpperCase()}</Text></TouchableOpacity>
+                <TouchableOpacity 
+                  key={m} 
+                  onPress={() => setThemeMode(m as any)} 
+                  style={[
+                    styles.themeBtn, 
+                    { 
+                      backgroundColor: themeMode === m ? COLORS.primary : 'transparent', 
+                      borderColor: COLORS.primary 
+                    }
+                  ]}
+                >
+                  <Text style={{ 
+                    // 👇 FIX: Use dark text on the bright dark-mode gold, white on the darker light-mode gold
+                    color: themeMode === m ? (isDarkMode ? '#1A1A1A' : '#FFF') : COLORS.text, 
+                    fontSize: 11,
+                    fontWeight: themeMode === m ? 'bold' : 'normal' // Added bold to make it pop!
+                  }}>
+                    {m.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity onPress={() => setShowTranslation(!showTranslation)} style={[styles.transBtn, { backgroundColor: showTranslation ? COLORS.primary : 'transparent', borderColor: COLORS.primary }]}><Text style={{ color: showTranslation ? '#FFF' : COLORS.text }}>{showTranslation ? "Hide Translation" : "Show Translation"}</Text></TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => setShowTranslation(!showTranslation)} 
+              style={[
+                styles.transBtn, 
+                { 
+                  backgroundColor: showTranslation ? COLORS.primary : 'transparent', 
+                  borderColor: COLORS.primary 
+                }
+              ]}
+            >
+              <Text style={{ 
+                // 👇 FIX: Same contrast fix for the translation button!
+                color: showTranslation ? (isDarkMode ? '#1A1A1A' : '#FFF') : COLORS.text,
+                fontWeight: showTranslation ? 'bold' : 'normal'
+              }}>
+                {showTranslation ? "Hide Translation" : "Show Translation"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </Pressable>
       </Modal>
