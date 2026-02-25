@@ -26,7 +26,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#FDFBF7"
+        "backgroundColor": "#fee08c"
       },
       "package": "com.zero.thenobelquran",
       "versionCode": 2,
