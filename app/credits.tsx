@@ -23,7 +23,7 @@ export default function CreditsScreen() {
         </View>
 
         <Text style={styles.appName}>The Noble Quran</Text>
-        <Text style={styles.version}>Version 1.0.1</Text>
+        <Text style={styles.version}>Version 1.0.2</Text>
 
         <View style={styles.divider} />
 
